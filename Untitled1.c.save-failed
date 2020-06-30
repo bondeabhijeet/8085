@@ -1,0 +1,43 @@
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+
+char *CheckSpacesAndTabs(char str[]);
+
+int main()
+{
+    FILE* fp;
+    char str[32], str1[32];
+    if((fp=fopen("InstructionSet.txt", "r"))==NULL)
+    {
+        printf("\nError Opening File\n");
+        exit(0);
+    }
+
+    fscanf(fp, "%[^\n]", str);
+
+    //CheckLabel(str);
+
+    printf("%s", CheckSpacesAndTabs(str));
+
+    fclose(fp);
+}
+
+char *CheckSpacesAndTabs(char str[])
+{
+    int count, i;
+    char str1[32];
+    i = 0;
+    count = 0;
+    while(str[count] != '\0')
+    {
+        if((str[i] == ' ' && str[i+1] == ' ') || (str[i] == '\t' && str[i+1] == '\t') || (str[i] == '\t' && str[i+1] == ' ') || (str[i] == ' ' && str[i+1] == '\t'));
+        {
+            continue;
+        }
+        str1[i] = str[count];
+        ++i;
+    }
+
+    return((char *) str1);
+}
