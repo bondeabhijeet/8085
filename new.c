@@ -28,22 +28,22 @@ int main()
         exit(0);
     }
 
-    fscanf(fp, " %[^\n]", str);
+    fscanf(fp, " %[^\n]", str);  // Read the full sentence from the given file with comment
     printf("\n%s\n", str);
 
-    str2 = DeleteExcessWhiteSpaces(str);
+    str2 = DeleteExcessWhiteSpaces(str);  // Deletes all the extra spaces and tabs (no tabs will be present after execution of this function)
     strcpy(InstructionWithComment, str2);
 
-    str2 = DeleteComment(str);
+    str2 = DeleteComment(str);  // In this function the comment will get deleted
     strcpy(Instruction, str2);
     printf("\n%s\n", Instruction);
 
-    GetFields(Instruction);
+    GetFields(Instruction);  // In this function the fields are separated
 
     fclose(fp);
 }
 
-char *DeleteComment(char str[])
+char *DeleteComment(char str[])  // wherever there is ; or // they will be replaced with \0 to mark the end of string thus deleting the comment
 {
     int count;
     count = 0;
@@ -59,7 +59,7 @@ char *DeleteComment(char str[])
     return(str);
 }
 
-char *DeleteExcessWhiteSpaces(char str[])
+char *DeleteExcessWhiteSpaces(char str[])  // All the extra tabs and spaces will get deleted. wherever there are more than 1 space, it will be deleted and the tabs will be replaced by spaces.
 {
     int count, i;
     char str1[256], c;
@@ -99,7 +99,7 @@ char *DeleteExcessWhiteSpaces(char str[])
     return(str);
 }
 
-int GetFields(char Instruction[])
+int GetFields(char Instruction[])  // The instruction is broken down into smaller tokens for analysis and differentiating whether it is a label or mnemonic or a operand
 {
     int j, k;
     char colon, Label[9], *p, Temp[256];
@@ -114,5 +114,6 @@ int GetFields(char Instruction[])
             *(p) = '\0';
         }
         strcpy(Label, Temp);
+        printf("\n\n%s\n", Label);
     }
 }

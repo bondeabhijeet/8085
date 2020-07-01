@@ -10,7 +10,7 @@ int main ()
   while (p!= NULL)
   {
     printf ("%s\n",p);
-    p = strtok (string, ",:");
+    p = strtok (NULL, ",:");
   }
   return 0;
 }
