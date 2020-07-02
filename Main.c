@@ -11,7 +11,7 @@ struct fields
 {
     char label[8];
     char mnemonic[4];
-    char operand1[2];
+    char operand1[4];
     char operand2[8];
 };
 
@@ -102,8 +102,10 @@ char *DeleteExcessWhiteSpaces(char str[])  // All the extra tabs and spaces will
 int GetFields(char Instruction[])  // The instruction is broken down into smaller tokens for analysis and differentiating whether it is a label or mnemonic or a operand
 {
     int j, k;
-    char colon, Label[9], *p, Temp[256];
+    char Label[9], *p, Temp[256], *p1, *p2, Mnemonic[5], Operand1[4], Operand2[9];
     strcpy(Temp, Instruction);
+
+    // Separating Label
 
     if(p = strchr(Temp, ':'))
     {
@@ -114,6 +116,128 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
             *(p) = '\0';
         }
         strcpy(Label, Temp);
-        printf("\n\n%s\n", Label);
+        printf("\n\nLabel:%s?\n", Label);
     }
+    else
+    {
+        Label[0] = '\0';
+    }
+
+    // Separating mnemonics
+
+    strcpy(Temp, Instruction);
+
+    if(p1 = strchr(Temp, ':'))  // When Label is present
+    {
+        if(*(p1+1) == ' ')
+        {
+            p1 = (p1+2);
+        }
+        if(p2 = strchr(p1, ' '))
+        {
+            *(p2) = '\0';
+        }
+        strcpy(Mnemonic, p1);
+        //printf("\n\nWhen Label is present:%s?\n", Mnemonic);
+    }
+    else  // When Label is absent
+    {
+        p1 = Temp;
+
+        if(Temp[0] == ' ')
+        {
+            p1++;
+        }
+        if(p2 = strchr(p1, ' '))
+        {
+            *(p2) = '\0';
+        }
+
+        strcpy(Mnemonic, p1);
+        //printf("%\n\nWhen Label is absent:%s?\n", Mnemonic);
+    }
+
+
+    // Separating operand 1
+
+
+    strcpy(Temp, Instruction);
+
+    if(p1 = strchr(Temp, ':'))  // When Label is present
+    {
+        if(*(p1+1) == ' ')
+        {
+            p1 = (p1+2);
+        }
+        if(p2 = strchr(p1, ' '))
+        {
+            p1 = (p2+1);
+        }
+        p2 = strtok(p1, " ,");
+
+        if(p2 == NULL)
+        {
+            Operand1[0] = '\0';
+        }
+        else
+        {
+            strcpy(Operand1, p1);
+        }
+
+        // printf("\n\nOperand1:%s?\n", Operand1);
+    }
+    else  // When Label is absent
+    {
+        p1 = Temp;
+
+        if(Temp[0] == ' ')
+        {
+            p1++;
+        }
+        if(p2 = strchr(p1, ' '))
+        {
+            p1 = (p2+1);
+        }
+        p2 = strtok(p1, " ,");
+
+        if(p2 == NULL)
+        {
+            Operand1[0] = '\0';
+        }
+        else
+        {
+            strcpy(Operand1, p1);
+        }
+
+        // printf("%\n\nOperand1q:%s?\n", Operand1);
+    }
+
+    // Separating operand 2
+
+    strcpy(Temp, Instruction);
+
+    if(p1 = strchr(Temp, ','))
+    {
+        if(*(p1+1) == ' ')
+        {
+            p1 = (p1 +2);
+        }
+        if(p2 = strchr(p1, ' '))
+        {
+            *(p2) = '\0';
+        }
+        strcpy(Operand2, p1);
+       // printf("\n\nOperand2:%sh\n", Operand2);
+    }
+    else
+    {
+        Operand2[0] = '\0';
+    }
+
+
+    printf("\nFINAL:\n");
+    printf("\n#Label:%s#\n", Label);
+    printf("\n#Mnemonic:%s#\n", Mnemonic);
+    printf("\n#Operand1:%s#\n", Operand1);
+    printf("\n#Operand2:%s#\n", Operand2);
 }
