@@ -1,32 +1,38 @@
-
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
 
+#define N 247
+
 char *DeleteComment(char str[]);
 char *DeleteExcessWhiteSpaces(char str[]);
 int GetFields(char Instruction[]);
+int ReadMachineOpTable();
 
-struct fields
+struct Fields
 {
-    char label[8];
-    char mnemonic[4];
-    char operand1[4];
-    char operand2[8];
-};
+    char Mnemonic[5];
+    char Operand1[10];
+    char Operand2[10];
+    char OpCode[3];
+    int Length;
+    int Type;
+}Inst[247];
 
 int main()
 {
-    FILE* fp;
+    FILE* fp, fp1;
     int counter, i;
     char str[256], InstructionWithComment[256], Instruction[256];
     char *str2;  // For recieving purpose
 
-    if((fp=fopen("InstructionSet.txt", "r"))==NULL)
+    if((fp=fopen("InstructionSet.txt", "r"))==NULL)  // Opening a file to read the program
     {
-        printf("\nError Opening File\n");
+        printf("\nError opening Instruction file\n");
         exit(0);
     }
+
+    ReadMachineOpTable();
 
     fscanf(fp, " %[^\n]", str);  // Read the full sentence from the given file with comment
     printf("\n%s\n", str);
@@ -102,7 +108,7 @@ char *DeleteExcessWhiteSpaces(char str[])  // All the extra tabs and spaces will
 int GetFields(char Instruction[])  // The instruction is broken down into smaller tokens for analysis and differentiating whether it is a label or mnemonic or a operand
 {
     int j, k;
-    char Label[9], *p, Temp[256], *p1, *p2, Mnemonic[5], Operand1[4], Operand2[9];
+    char Label[10], *p, Temp[256], *p1, *p2, Mnemonic[5], Operand1[10], Operand2[10];
     strcpy(Temp, Instruction);
 
     // Separating Label
@@ -241,3 +247,54 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
     printf("\n#Operand1:%s#\n", Operand1);
     printf("\n#Operand2:%s#\n", Operand2);
 }
+
+int ReadMachineOpTable()
+{
+    FILE *fp;
+
+    int i;
+
+    if((fp=fopen("MachineOpTable.txt", "r")) == NULL)
+    {
+        printf("\n Error opening the text file named Test...\n Exiting....\n");
+    }
+
+
+    for(i=1; i<= N; ++i)
+    {
+        fscanf(fp, "%s", Inst[i].Mnemonic);
+        fscanf(fp, "%s", Inst[i].Operand1);
+        fscanf(fp, "%s", Inst[i].Operand2);
+        fscanf(fp, "%s", Inst[i].OpCode);
+        fscanf(fp, "%d", &Inst[i].Length);
+        fscanf(fp, "%d", &Inst[i].Type);
+
+        printf("%s", Inst[i].Mnemonic);
+        printf("%s", Inst[i].Operand1);
+        printf("%s", Inst[i].Operand2);
+        printf("%s", Inst[i].OpCode);
+        printf("%d", Inst[i].Length);
+        printf("%d\n", Inst[i].Type);
+    }
+
+}
+
+/*ReadMachineOpCode(void)
+{
+    char str[256];
+    struct
+    if((fp1=fopen("MachineOpTable.txt","r"))==NULL)  // Opening a file to read the Machine-Op Code
+    {
+        printf("\nError opening Machine-op code file\n");
+    }
+
+    while(!feof(fp1))
+    {
+
+    }
+    fscanf(fp1, " %[^\n]", str);
+
+    if(str == "NULL")
+    fclose(fp1);
+}*/
+
