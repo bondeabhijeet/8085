@@ -1,4 +1,3 @@
-
 Mnemonic        OP1	   OP2	  Opcode	Length		Type
 ACI             Data8      !!        CE	           2             3
 ADC             A	   !!        8F	           1             2
