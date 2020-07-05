@@ -46,6 +46,7 @@ int ReadMachineOpTable()
         printf("%s", Inst[i].OpCode);
         printf("%d", Inst[i].Length);
         printf("%d\n", Inst[i].Type);
+    }
 }
 
 

@@ -6,10 +6,10 @@
 
 char *DeleteComment(char str[]);
 char *DeleteExcessWhiteSpaces(char str[]);
-int GetFields(char Instruction[]);
+struct PROG GetFields(char Instruction[]);
 int ReadMachineOpTable();
 
-struct Fields
+struct MOT
 {
     char Mnemonic[5];
     char Operand1[10];
@@ -17,12 +17,22 @@ struct Fields
     char OpCode[3];
     int Length;
     int Type;
-}Inst[247];
+};
+
+struct PROG // PROG stands for program
+{
+    char Label[10];
+    char Mnemonic[5];
+    char Operand1[10];
+    char Operand2[10];
+};
 
 int main()
 {
     FILE* fp, fp1;
     int counter, i;
+    struct MOT MOTInst[N];
+    struct PROG SourceInst;
     char str[256], InstructionWithComment[256], Instruction[256];
     char *str2;  // For recieving purpose
 
@@ -32,7 +42,7 @@ int main()
         exit(0);
     }
 
-    ReadMachineOpTable();
+    ReadMachineOpTable(MOTInst);
 
     fscanf(fp, " %[^\n]", str);  // Read the full sentence from the given file with comment
     printf("\n%s\n", str);
@@ -44,7 +54,7 @@ int main()
     strcpy(Instruction, str2);
     printf("\n%s\n", Instruction);
 
-    GetFields(Instruction);  // In this function the fields are separated
+    SourceInst = GetFields(Instruction);  // In this function the fields are separated*/
 
     fclose(fp);
 }
@@ -105,10 +115,11 @@ char *DeleteExcessWhiteSpaces(char str[])  // All the extra tabs and spaces will
     return(str);
 }
 
-int GetFields(char Instruction[])  // The instruction is broken down into smaller tokens for analysis and differentiating whether it is a label or mnemonic or a operand
+struct PROG GetFields(char Instruction[])  // The instruction is broken down into smaller tokens for analysis and differentiating whether it is a label or mnemonic or a operand
 {
     int j, k;
     char Label[10], *p, Temp[256], *p1, *p2, Mnemonic[5], Operand1[10], Operand2[10];
+    struct PROG TempInst;
     strcpy(Temp, Instruction);
 
     // Separating Label
@@ -121,12 +132,12 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
         {
             *(p) = '\0';
         }
-        strcpy(Label, Temp);
-        printf("\n\nLabel:%s?\n", Label);
+        strcpy(TempInst.Label, Temp);
+        printf("\n\nLabel:%s?\n", TempInst.Label);
     }
     else
     {
-        Label[0] = '\0';
+        TempInst.Label[0] = '\0';
     }
 
     // Separating mnemonics
@@ -143,8 +154,8 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
         {
             *(p2) = '\0';
         }
-        strcpy(Mnemonic, p1);
-        //printf("\n\nWhen Label is present:%s?\n", Mnemonic);
+        strcpy(TempInst.Mnemonic, p1);
+        printf("\n\nWhen Label is present:%s?\n", TempInst.Mnemonic);
     }
     else  // When Label is absent
     {
@@ -159,8 +170,8 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
             *(p2) = '\0';
         }
 
-        strcpy(Mnemonic, p1);
-        //printf("%\n\nWhen Label is absent:%s?\n", Mnemonic);
+        strcpy(TempInst.Mnemonic, p1);
+        printf("%\n\nWhen Label is absent:%s?\n", TempInst.Mnemonic);
     }
 
 
@@ -183,11 +194,11 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
 
         if(p2 == NULL)
         {
-            Operand1[0] = '\0';
+            TempInst.Operand1[0] = '\0';
         }
         else
         {
-            strcpy(Operand1, p1);
+            strcpy(TempInst.Operand1, p1);
         }
 
         // printf("\n\nOperand1:%s?\n", Operand1);
@@ -208,11 +219,11 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
 
         if(p2 == NULL)
         {
-            Operand1[0] = '\0';
+            TempInst.Operand1[0] = '\0';
         }
         else
         {
-            strcpy(Operand1, p1);
+            strcpy(TempInst.Operand1, p1);
         }
 
         // printf("%\n\nOperand1q:%s?\n", Operand1);
@@ -232,49 +243,52 @@ int GetFields(char Instruction[])  // The instruction is broken down into smalle
         {
             *(p2) = '\0';
         }
-        strcpy(Operand2, p1);
-       // printf("\n\nOperand2:%sh\n", Operand2);
+        strcpy(TempInst.Operand2, p1);
+       printf("\n\nOperand2:%sh\n", TempInst.Operand2);
     }
     else
     {
-        Operand2[0] = '\0';
+        TempInst.Operand2[0] = '\0';
     }
 
 
     printf("\nFINAL:\n");
-    printf("\n#Label:%s#\n", Label);
-    printf("\n#Mnemonic:%s#\n", Mnemonic);
-    printf("\n#Operand1:%s#\n", Operand1);
-    printf("\n#Operand2:%s#\n", Operand2);
+    printf("\n#Label:%s#\n", TempInst.Label);
+    printf("\n#Mnemonic:%s#\n", TempInst.Mnemonic);
+    printf("\n#Operand1:%s#\n", TempInst.Operand1);
+    printf("\n#Operand2:%s#\n", TempInst.Operand2);
+
+    return(TempInst);
 }
 
-int ReadMachineOpTable()
+int ReadMachineOpTable(struct MOT MOTInst[])
 {
     FILE *fp;
 
     int i;
 
-    if((fp=fopen("MachineOpTable.txt", "r")) == NULL)
+    if((fp=fopen("MachineOpTable 8085A.txt", "r")) == NULL)
     {
-        printf("\n Error opening the text file named Test...\n Exiting....\n");
+        printf("\n Error opening the text file named MachineOpTable 8085A...\n Exiting....\n");
+        exit(0);
     }
 
 
-    for(i=1; i<= N; ++i)
+    for(i=1; i<N; ++i)
     {
-        fscanf(fp, "%s", Inst[i].Mnemonic);
-        fscanf(fp, "%s", Inst[i].Operand1);
-        fscanf(fp, "%s", Inst[i].Operand2);
-        fscanf(fp, "%s", Inst[i].OpCode);
-        fscanf(fp, "%d", &Inst[i].Length);
-        fscanf(fp, "%d", &Inst[i].Type);
+        fscanf(fp, "%s", MOTInst[i].Mnemonic);
+        fscanf(fp, "%s", MOTInst[i].Operand1);
+        fscanf(fp, "%s", MOTInst[i].Operand2);
+        fscanf(fp, "%s", MOTInst[i].OpCode);
+        fscanf(fp, "%d", &MOTInst[i].Length);
+        fscanf(fp, "%d", &MOTInst[i].Type);
 
-        printf("%s", Inst[i].Mnemonic);
-        printf("%s", Inst[i].Operand1);
-        printf("%s", Inst[i].Operand2);
-        printf("%s", Inst[i].OpCode);
-        printf("%d", Inst[i].Length);
-        printf("%d\n", Inst[i].Type);
+        printf("%s", MOTInst[i].Mnemonic);
+        printf("%s", MOTInst[i].Operand1);
+        printf("%s", MOTInst[i].Operand2);
+        printf("%s", MOTInst[i].OpCode);
+        printf("%d", MOTInst[i].Length);
+        printf("%d\n", MOTInst[i].Type);
     }
 
 }
