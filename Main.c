@@ -4,12 +4,12 @@
 
 #define N 247
 
-char *DeleteComment(char str[]);
-char *DeleteExcessWhiteSpaces(char str[]);
-struct PROG GetFields(char Instruction[]);
-int ReadMachineOpTable();
+/*ERROR CODES:
+300: SYNTAX ERROR IN MNEMONIC....
+400: SYNTAX ERROR IN OPERAND1....
+500: SYNTAX ERROR IN OPERAND1 OR OPERAND2*/
 
-struct MOT
+struct MOT  // For MachineOp Table
 {
     char Mnemonic[5];
     char Operand1[10];
@@ -27,10 +27,18 @@ struct PROG // PROG stands for program
     char Operand2[10];
 };
 
+
+char *DeleteComment(char str[]);
+char *DeleteExcessWhiteSpaces(char str[]);
+struct PROG GetFields(char Instruction[]);
+int ReadMachineOpTable();
+int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst);
+
+
 int main()
 {
     FILE* fp, fp1;
-    int counter, i;
+    int counter, i, MOTIndex;
     struct MOT MOTInst[N];
     struct PROG SourceInst;
     char str[256], InstructionWithComment[256], Instruction[256];
@@ -55,6 +63,20 @@ int main()
     printf("\n%s\n", Instruction);
 
     SourceInst = GetFields(Instruction);  // In this function the fields are separated*/
+
+    MOTIndex = MOTGetPass1(MOTInst, SourceInst);
+    if(MOTIndex == 300)
+    {
+        printf("\nSYNTAX ERROR IN MNEMONIC....\n");
+    }
+    if(MOTIndex == 400)
+    {
+        printf("\nSYNTAX ERROR IN OPERAND1....\n");
+    }
+    if(MOTIndex == 500)
+    {
+        printf("\nSYNTAX ERROR IN OPERAND1 OR OPERAND2\n");
+    }
 
     fclose(fp);
 }
@@ -283,32 +305,98 @@ int ReadMachineOpTable(struct MOT MOTInst[])
         fscanf(fp, "%d", &MOTInst[i].Length);
         fscanf(fp, "%d", &MOTInst[i].Type);
 
-        printf("%s", MOTInst[i].Mnemonic);
+        /*printf("%s", MOTInst[i].Mnemonic);
         printf("%s", MOTInst[i].Operand1);
         printf("%s", MOTInst[i].Operand2);
         printf("%s", MOTInst[i].OpCode);
         printf("%d", MOTInst[i].Length);
-        printf("%d\n", MOTInst[i].Type);
+        printf("%d\n", MOTInst[i].Type);*/
     }
 
 }
 
-/*ReadMachineOpCode(void)
+int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
 {
-    char str[256];
-    struct
-    if((fp1=fopen("MachineOpTable.txt","r"))==NULL)  // Opening a file to read the Machine-Op Code
+    int i, index;
+    char MOTStr[25], SourceStr[25];
+
+    for(i=1; i<N; ++i)
     {
-        printf("\nError opening Machine-op code file\n");
+        if(!(strcmp(MOTInst[i].Mnemonic, SourceInst.Mnemonic)))
+        {
+            break;
+        }
     }
 
-    while(!feof(fp1))
+    if(i == N)
     {
+        //printf("\nSYNTAX ERROR IN MNEMONIC....\n");
+        return(300);
+    }
+
+    // If the instruction is of type 1, 3, 4, 5 ie. only Mnemonic
+    if(MOTInst[i].Type == 1 || MOTInst[i].Type == 3 || MOTInst[i].Type == 4 || MOTInst[i].Type == 5)
+    {
+        printf("TYPE:%d", MOTInst[i].Type);
+        return(i);
+    }
+
+    // If the Instruction if of type 2, 6, 8, 9 ie. Mnemonic with operand1
+    if(MOTInst[i].Type == 2 || MOTInst[i].Type == 6 || MOTInst[i].Type == 8 || MOTInst[i].Type == 9)
+    {
+        // Making SourceStr by appending Operand1 to Mnemonic
+        strcpy(SourceStr, SourceInst.Mnemonic);
+        strcat(SourceStr, SourceInst.Operand1);
+        printf("\n%s\n", SourceStr);
+
+        //Searching MOT
+        for(i=1; i<N; ++i)
+        {
+            // Making MOTStr by appending Operand1 to Mnemonic
+            strcpy(MOTStr, MOTInst[i].Mnemonic);
+            strcat(MOTStr, MOTInst[i].Operand1);
+
+            if(!strcmp(SourceStr, MOTStr))
+            {
+                //printf("\nMATCH FOUND....EXACT INDEX:%d\n", i);
+                break;
+            }
+        }
+        if(i == N)
+        {
+            return(400);
+        }
 
     }
-    fscanf(fp1, " %[^\n]", str);
 
-    if(str == "NULL")
-    fclose(fp1);
-}*/
+    // If the Instruction is of type 7 ie.Mnemonic With Operand1 and Operand2
+    if(MOTInst[i].Type == 7)
+    {
+        //Making SourceStr by appending Operand1 and Operand2 to Mnemonic
+        strcpy(SourceStr, SourceInst.Mnemonic);
+        strcat(SourceStr, SourceInst.Operand1);
+        strcat(SourceStr, SourceInst.Operand2);
+        printf("\n%s\n", SourceStr);
 
+        //Searching MOT
+        for(i=1; i<N; ++i)
+        {
+            //Making MOTStr by appending Operand1 and Operand2 to Mnemonic
+            strcpy(MOTStr, MOTInst[i].Mnemonic);
+            strcat(MOTStr, MOTInst[i].Operand1);
+            strcat(MOTStr, MOTInst[i].Operand2);
+
+
+            if(!strcmp(SourceStr, MOTStr))
+            {
+                //printf("MATCH FOUND 2.... EXACT INDEX:%d\n", i);
+                break;
+            }
+        }
+        if(i == N)
+        {
+            return(500);
+        }
+    }
+    return(i);
+}
