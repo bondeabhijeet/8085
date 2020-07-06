@@ -5,9 +5,9 @@
 #define N 247
 
 /*ERROR CODES:
-300: SYNTAX ERROR IN MNEMONIC....
-400: SYNTAX ERROR IN OPERAND1....
-500: SYNTAX ERROR IN OPERAND1 OR OPERAND2*/
+1000: SYNTAX ERROR IN MNEMONIC....
+1001: SYNTAX ERROR IN OPERAND1....
+1002: SYNTAX ERROR IN OPERAND1 OR OPERAND2*/
 
 struct MOT  // For MachineOp Table
 {
@@ -17,6 +17,11 @@ struct MOT  // For MachineOp Table
     char OpCode[3];
     int Length;
     int Type;
+};
+
+struct POT // For Pseud Op Table
+{
+    char PseudoOp[10];
 };
 
 struct PROG // PROG stands for program
@@ -31,14 +36,20 @@ char *DeleteComment(char str[]);
 char *DeleteExcessWhiteSpaces(char str[]);
 struct PROG GetFields(char Instruction[]);
 int ReadMachineOpTable();
+void ReadPseudoOpTable(struct POT POTInst[]);
 int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst);
+void DisplayError(unsigned int ErrorCode, unsigned int LN);
+void STSTO(FILE *fp2, char Label[], unsigned int LC);
+int IsPseudoOp(char Mnemonic[], struct POT POTInst[]);
+
 
 int main()
 {
-    FILE *fp, *fp1, *fp2;
-    unsigned int counter, i, MOTIndex;
+    FILE *fp, *fp2;
+    unsigned int counter, i, MOTIndex, e;
     unsigned int LC, LN;
     struct MOT MOTInst[N];
+    struct POT POTInst[N];
     struct PROG SourceInst;
     char str[256], InstructionWithComment[256], Instruction[256];
     char *str2;  // For recieving purpose
@@ -46,7 +57,9 @@ int main()
     // Preparing MachineOp Table
     ReadMachineOpTable(MOTInst);
 
-    if((fp=fopen("InstructionSet.txt", "r"))==NULL)  // Opening a file to read the program
+    ReadPseudoOpTable(POTInst);
+
+    if((fp=fopen("SourceProgram.txt", "r"))==NULL)  // Opening a file to read the program
     {
         printf("\nError opening Instruction file\n");  //error
         exit(0);
@@ -59,34 +72,85 @@ int main()
     }
 
 
-    fscanf(fp, " %[^\n]", str);  // Read the full sentence from the given file with comment
-    //printf("\n%s\n", str);
+    // Starting pass 1 : preparing symbol table
+    LC = 2000; // Assuming program will start at 2000 location
+    LN = 1;
 
-    str2 = DeleteExcessWhiteSpaces(str);  // Deletes all the extra spaces and tabs (no tabs will be present after execution of this function)
-    strcpy(InstructionWithComment, str2);
-
-    str2 = DeleteComment(str);  // In this function the comment will get deleted
-    strcpy(Instruction, str2);
-    //printf("\n%s\n", Instruction);
-
-    SourceInst = GetFields(Instruction);  // In this function the fields are separated*/
-
-    MOTIndex = MOTGetPass1(MOTInst, SourceInst);
-    if(MOTIndex == 300)
+    while(!feof(fp))
     {
-        printf("\nSYNTAX ERROR IN MNEMONIC....\n");
-    }
-    if(MOTIndex == 400)
-    {
-        printf("\nSYNTAX ERROR IN OPERAND1....\n");
-    }
-    if(MOTIndex == 500)
-    {
-        printf("\nSYNTAX ERROR IN OPERAND1 OR OPERAND2\n");
+        fscanf(fp, " %[^\n]", str);  // Read the full sentence from the given file with comment
+        //printf("\n%s\n", str);
+
+        str2 = DeleteExcessWhiteSpaces(str);  // Deletes all the extra spaces and tabs (no tabs will be present after execution of this function)
+        strcpy(InstructionWithComment, str2);
+
+        str2 = DeleteComment(str);  // In this function the comment will get deleted
+        strcpy(Instruction, str2);
+        //printf("\n%s\n", Instruction);
+
+        SourceInst = GetFields(Instruction);  // In this function the fields are separated*/
+
+        //  process pseudo Op
+
+        if(e=IsPseudoOp(SourceInst.Mnemonic, POTInst))
+        {
+            printf("\nPseudoOp Found...:%d\n", e);
+            exit(0);
+            // POTGET()
+        }
+
+        MOTIndex = MOTGetPass1(MOTInst, SourceInst);
+
+        if(MOTIndex >= 1000)
+        {
+            DisplayError(MOTIndex, LN);
+        }
+
+
+        if((SourceInst.Label[0])!= '\0')  // If label call STSTO
+        {
+            STSTO(fp2, SourceInst.Label, LC);
+        }
+
+        LC = LC + MOTInst[MOTIndex].Length;
+        LN = LN + 1;
     }
 
     fclose(fp2);
     fclose(fp);
+}
+
+int IsPseudoOp(char Mnemonic[], struct POT POTInst[])  // Check for Pseudo Op
+{
+    int i;
+    i = 1;
+    while(POTInst[i].PseudoOp[0] != '\0')
+    {
+        if(!strcmp(Mnemonic, POTInst[i].PseudoOp))
+        {
+            return(i);
+        }
+        i = i + 1;
+    }
+    return(0);
+}
+
+void STSTO(FILE *fp2, char Label[], unsigned int LC)  // Symbol table storage
+{
+    fprintf(fp2, "%15s", Label);
+    fprintf(fp2, "%6d", LC);
+    fprintf(fp2, "\n");
+}
+
+void DisplayError(unsigned int ErrorCode, unsigned int LN)
+{
+    char ErrorMessages[][80] = {"SYNTAX ERROR IN MNEMONIC....",
+                                "SYNTAX ERROR IN OPERAND1....",
+                                "SYNTAX ERROR IN OPERAND2...."};
+
+    printf("\nERROR IN LINE NO: %d : %s\n\n\a", LN, ErrorMessages[ErrorCode - 1000]);
+    exit(0);
+
 }
 
 char *DeleteComment(char str[])  // wherever there is ; or // they will be replaced with \0 to mark the end of string thus deleting the comment
@@ -167,7 +231,7 @@ struct PROG GetFields(char Instruction[])  // The instruction is broken down int
             Temp[11] = '\0';
         }
         strcpy(TempInst.Label, Temp);
-        printf("\n\nLabel:%s?\n", TempInst.Label);
+        //printf("\n\nLabel:%s?\n", TempInst.Label);
     }
     else  // If Label is not present so entering \0 in the label string
     {
@@ -349,6 +413,32 @@ int ReadMachineOpTable(struct MOT MOTInst[])
         printf("%d\n", MOTInst[i].Type);*/
     }
 
+    fclose(fp);
+
+}
+
+void ReadPseudoOpTable(struct POT POTInst[])
+{
+    FILE *fp;
+    int i;
+
+    if((fp = fopen("PseudoOpTable.txt", "r")) == NULL)
+    {
+        //error
+        printf("\nERROR OPENING FILE....\n");
+        exit(0);
+    }
+
+    i = 1;
+    while(!feof(fp))
+    {
+        fscanf(fp, "%s", POTInst[i].PseudoOp);
+        //printf("\nPSEUDOOP:%sh\n", POTInst[i].PseudoOp);
+        i = i + 1;
+    }
+    POTInst[i].PseudoOp[0] = '\0';
+
+    fclose(fp);
 }
 
 int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
@@ -360,7 +450,7 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
     {
         if(!(strcmp(MOTInst[i].Mnemonic, SourceInst.Mnemonic)))
         {
-            printf("%sh", SourceInst.Mnemonic);
+            //printf("%sh", SourceInst.Mnemonic);
             break;
         }
     }
@@ -368,7 +458,7 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
     if(i == N)
     {
         //printf("\nSYNTAX ERROR IN MNEMONIC....\n");
-        return(300);
+        return(1000);
     }
 
     // If the instruction is of type 1, 3, 4, 5 ie. only Mnemonic
@@ -401,7 +491,7 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
         }
         if(i == N)
         {
-            return(400);
+            return(1001);
         }
 
     }
@@ -432,7 +522,7 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
         }
         if(i == N)
         {
-            return(500);
+            return(1002);
         }
     }
     return(i);
