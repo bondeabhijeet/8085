@@ -19,11 +19,6 @@ struct MOT  // For MachineOp Table
     int Type;
 };
 
-struct POT // For Pseud Op Table
-{
-    char PseudoOp[10];
-};
-
 struct PROG // PROG stands for program
 {
     char Label[12];
@@ -32,32 +27,34 @@ struct PROG // PROG stands for program
     char Operand2[12];
 };
 
+
 char *DeleteComment(char str[]);
 char *DeleteExcessWhiteSpaces(char str[]);
 struct PROG GetFields(char Instruction[]);
 int ReadMachineOpTable();
-void ReadPseudoOpTable(struct POT POTInst[]);
 int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst);
 void DisplayError(unsigned int ErrorCode, unsigned int LN);
 void STSTO(FILE *fp2, char Label[], unsigned int LC);
-int IsPseudoOp(char Mnemonic[], struct POT POTInst[]);
+int IsPseudoOp(char Mnemonic[], char POT[][6]);
+int ProcessPseudoOp( unsigned int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
+int ProcessORGorSTART( struct PROG SourceInst, unsigned int *LC, FILE *fp2 , unsigned int LN);
+int ProcessEQU( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
 
 
 int main()
 {
     FILE *fp, *fp2;
-    unsigned int counter, i, MOTIndex, e;
+    unsigned int counter, i, MOTIndex, p;
     unsigned int LC, LN;
     struct MOT MOTInst[N];
-    struct POT POTInst[N];
+    char POT[][6] = {"ZZZZ", "DB", "DS", "DW", "END", "EQU", "ORG", "START", "\0"};
     struct PROG SourceInst;
     char str[256], InstructionWithComment[256], Instruction[256];
     char *str2;  // For recieving purpose
 
+
     // Preparing MachineOp Table
     ReadMachineOpTable(MOTInst);
-
-    ReadPseudoOpTable(POTInst);
 
     if((fp=fopen("SourceProgram.txt", "r"))==NULL)  // Opening a file to read the program
     {
@@ -92,41 +89,117 @@ int main()
 
         //  process pseudo Op
 
-        if(e=IsPseudoOp(SourceInst.Mnemonic, POTInst))
+        if(p = IsPseudoOp(SourceInst.Mnemonic, POT))
         {
-            printf("\nPseudoOp Found...:%d\n", e);
-            exit(0);
-            // POTGET()
+            printf("\nPseudoOp Found...:%d\n", p);
+            ProcessPseudoOp( p, SourceInst, &LC, fp2 , LN);
+            //exit(0);
+        }
+        else
+        {
+            MOTIndex = MOTGetPass1(MOTInst, SourceInst);
+
+            if(MOTIndex >= 1000)
+            {
+                DisplayError(MOTIndex, LN);
+            }
+
+
+            if((SourceInst.Label[0])!= '\0')  // If label call STSTO
+            {
+                STSTO(fp2, SourceInst.Label, LC);
+            }
+
+            LC = LC + MOTInst[MOTIndex].Length;
         }
 
-        MOTIndex = MOTGetPass1(MOTInst, SourceInst);
 
-        if(MOTIndex >= 1000)
-        {
-            DisplayError(MOTIndex, LN);
-        }
-
-
-        if((SourceInst.Label[0])!= '\0')  // If label call STSTO
-        {
-            STSTO(fp2, SourceInst.Label, LC);
-        }
-
-        LC = LC + MOTInst[MOTIndex].Length;
         LN = LN + 1;
+        printf( "\nLINE NO:%d\n", LN );
     }
 
     fclose(fp2);
     fclose(fp);
 }
 
-int IsPseudoOp(char Mnemonic[], struct POT POTInst[])  // Check for Pseudo Op
+int ProcessPseudoOp( unsigned int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2 , unsigned int LN)
+{
+    printf("P=%d", p);
+    if( p == 1 )
+    {
+        //ProcessDB();  // Process DB pseudoOp
+    }
+    else if( p == 2)
+    {
+        //ProcessDS();  // Process DS pseudoOp
+    }
+    else if( p == 3)
+    {
+        //ProcessDW(); // Process DW pseudoOp
+    }
+    else if( p == 4)
+    {
+        //ProcessEND(); // Process END pseudoOp
+    }
+    else if( p == 5)
+    {
+        ProcessEQU( SourceInst, LC, fp2, LN );  // Process EQU pseudoOp
+    }
+    else if( p == 6 || p == 7)
+    {
+        ProcessORGorSTART( SourceInst, LC, fp2, LN);  // Process ORG or START pseudoOp
+    }
+    else  // In case
+    {
+        printf("\nPseudoOp Error\n");
+    }
+}
+
+int ProcessEQU( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )
+{
+    unsigned int temp;
+    if( !strcmp( SourceInst.Operand1, "*"))
+    {
+        *(LC) = *(LC);
+        //printf("\n********FOUND\n");
+        STSTO( fp2, SourceInst.Label, *LC );
+    }
+    else
+    {
+        temp = ( unsigned int )atoi( SourceInst.Operand1 );
+        STSTO( fp2, SourceInst.Label, temp );
+    }
+}
+
+int ProcessORGorSTART( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN)
+{
+    if( !strcmp( SourceInst.Operand1, "*" ))
+    {
+        *(LC) = *(LC);
+    }
+    else
+    {
+        *(LC) = ( unsigned int ) strtol( SourceInst.Operand1, NULL, 16);
+        printf("\nLongint:%x", *(LC));
+        //*(LC) = ( unsigned int )atoi( SourceInst.Operand1 );
+        //printf( "h%d", *(LC) );
+    }
+
+    STSTO( fp2, SourceInst.Label, *LC );  // Symbol table storage
+
+    return(1);
+}
+
+int IsPseudoOp( char Mnemonic[], char POT[][6])  // Check for Pseudo Op
 {
     int i;
+
     i = 1;
-    while(POTInst[i].PseudoOp[0] != '\0')
+
+    while(POT[i][0] != '\0')
     {
-        if(!strcmp(Mnemonic, POTInst[i].PseudoOp))
+        //printf("\nmn:%s, %s\n", Mnemonic, POT[i]);
+        if(!strcmp(Mnemonic, POT[i]))
         {
             return(i);
         }
@@ -138,7 +211,7 @@ int IsPseudoOp(char Mnemonic[], struct POT POTInst[])  // Check for Pseudo Op
 void STSTO(FILE *fp2, char Label[], unsigned int LC)  // Symbol table storage
 {
     fprintf(fp2, "%15s", Label);
-    fprintf(fp2, "%6d", LC);
+    fprintf(fp2, "%6x", LC);
     fprintf(fp2, "\n");
 }
 
@@ -417,30 +490,6 @@ int ReadMachineOpTable(struct MOT MOTInst[])
 
 }
 
-void ReadPseudoOpTable(struct POT POTInst[])
-{
-    FILE *fp;
-    int i;
-
-    if((fp = fopen("PseudoOpTable.txt", "r")) == NULL)
-    {
-        //error
-        printf("\nERROR OPENING FILE....\n");
-        exit(0);
-    }
-
-    i = 1;
-    while(!feof(fp))
-    {
-        fscanf(fp, "%s", POTInst[i].PseudoOp);
-        //printf("\nPSEUDOOP:%sh\n", POTInst[i].PseudoOp);
-        i = i + 1;
-    }
-    POTInst[i].PseudoOp[0] = '\0';
-
-    fclose(fp);
-}
-
 int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
 {
     int i, index;
@@ -527,5 +576,3 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
     }
     return(i);
 }
-
-

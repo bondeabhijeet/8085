@@ -1,4 +1,0 @@
-DC
-DS
-EQU
-START
