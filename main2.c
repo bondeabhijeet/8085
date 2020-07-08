@@ -1,3 +1,4 @@
+
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
@@ -36,12 +37,13 @@ struct PROG GetFields(char Instruction[]);
 int ReadMachineOpTable();
 int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst);
 void DisplayError(unsigned int ErrorCode, unsigned int LN);
-void STSTO(FILE *fp2, char Label[], unsigned int LC);
+void STSTO(FILE *fp2, struct PROG SourceInst, unsigned int LC);
 int IsPseudoOp(char Mnemonic[], char POT[][6]);
 int ProcessPseudoOp( unsigned int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
 int ProcessORGorSTART( struct PROG SourceInst, unsigned int *LC, FILE *fp2 , unsigned int LN);
 int ProcessEQU( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
 int ProcessDS_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN );
+int ProcessEND(void);
 void SetColor(int ForgC);
 
 
@@ -111,7 +113,7 @@ int main()
 
             if((SourceInst.Label[0])!= '\0')  // If label call STSTO
             {
-                STSTO(fp2, SourceInst.Label, LC);
+                STSTO(fp2, SourceInst, LC);
             }
 
             LC = LC + MOTInst[MOTIndex].Length;
@@ -144,7 +146,7 @@ int ProcessPseudoOp( unsigned int p, struct PROG SourceInst, unsigned int *LC, F
     }
     else if( p == 4)
     {
-        //ProcessEND(); // Process END pseudoOp
+        ProcessEND(); // Process END pseudoOp
     }
     else if( p == 5)
     {
@@ -160,12 +162,16 @@ int ProcessPseudoOp( unsigned int p, struct PROG SourceInst, unsigned int *LC, F
     }
 }
 
+int ProcessEND(void)
+{
+    return(1);
+}
 int ProcessDS_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )
 {
     unsigned int OP1;
 
     OP1 = (unsigned int) atoi(SourceInst.Operand1);
-    STSTO( fp2, SourceInst.Label, *LC );
+    STSTO( fp2, SourceInst, *LC );
     *(LC) = *(LC) + OP1;
 }
 
@@ -177,12 +183,12 @@ int ProcessEQU( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned in
         *(LC) = *(LC);
         //printf("\n********FOUND\n");
 
-        STSTO( fp2, SourceInst.Label, *LC );
+        STSTO( fp2, SourceInst, *LC );
     }
     else
     {
         temp = ( unsigned int )atoi( SourceInst.Operand1 );
-        STSTO( fp2, SourceInst.Label, temp );
+        STSTO( fp2, SourceInst, temp );
     }
 }
 
@@ -200,7 +206,7 @@ int ProcessORGorSTART( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsi
         //printf( "h%d", *(LC) );
     }
 
-    STSTO( fp2, SourceInst.Label, *LC );  // Symbol table storage
+    STSTO( fp2, SourceInst, *LC );  // Symbol table storage
 
     return(1);
 }
@@ -223,11 +229,21 @@ int IsPseudoOp( char Mnemonic[], char POT[][6])  // Check for Pseudo Op
     return(0);
 }
 
-void STSTO( FILE *fp2, char Label[], unsigned int LC )  // Symbol table storage
+void STSTO( FILE *fp2, struct PROG SourceInst, unsigned int LC )  // Symbol table storage
 {
-    fprintf(fp2, "%15s", Label);
-    fprintf(fp2, "%6x", LC);
-    fprintf(fp2, "\n");
+    if( !strcmp( SourceInst.Mnemonic, "EQU" ))
+    {
+        fprintf(fp2, "%15s", SourceInst.Label);
+        fprintf(fp2, "%6d", LC);
+        fprintf(fp2, "\n");
+    }
+    else
+    {
+        fprintf(fp2, "%15s", SourceInst.Label);
+        fprintf(fp2, "%6x", LC);
+        fprintf(fp2, "\n");
+    }
+
 }
 
 void DisplayError(unsigned int ErrorCode, unsigned int LN)

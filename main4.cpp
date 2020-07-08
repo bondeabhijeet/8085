@@ -1,3 +1,5 @@
+#include<windows.h>
+#include<dos.h>
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
@@ -33,15 +35,17 @@ struct PROG // PROG stands for program
 char *DeleteComment(char str[]);
 char *DeleteExcessWhiteSpaces(char str[]);
 struct PROG GetFields(char Instruction[]);
-int ReadMachineOpTable();
-int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst);
+int ReadMachineOpTable(struct MOT MOTInst[]);
+int MOTGet_Pass1(struct MOT MOTInst[], struct PROG SourceInst);
 void DisplayError(unsigned int ErrorCode, unsigned int LN);
-void STSTO(FILE *fp2, char Label[], unsigned int LC);
-int IsPseudoOp(char Mnemonic[], char POT[][6]);
-int ProcessPseudoOp( unsigned int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
-int ProcessORGorSTART( struct PROG SourceInst, unsigned int *LC, FILE *fp2 , unsigned int LN);
-int ProcessEQU( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
+void STSTO(FILE *fp2, struct PROG SourceInst, unsigned int LC);
+int IsPseudoOp_Pass1(char Mnemonic[], char POT[][6]);
+int ProcessPseudoOp_Pass1( unsigned int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
+int ProcessORGorSTART_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2 , unsigned int LN);
+int ProcessEQU_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN);
 int ProcessDS_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN );
+int ProcessDB_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN );
+int ProcessEND_Pass1(void);
 void SetColor(int ForgC);
 
 
@@ -51,74 +55,80 @@ int main()
     unsigned int counter, i, MOTIndex, p;
     unsigned int LC, LN;
     struct MOT MOTInst[N];
-    char POT[][6] = {"ZZZZ", "DB", "DS", "DW", "END", "EQU", "ORG", "START", "\0"};
+    char POT[][6] = {"ZZZZ", "DB", "DS", "DW", "END", "EQU", "ORG", "START", "\0"};  // remember that the zeroth element is dummy
     struct PROG SourceInst;
     char str[256], InstructionWithComment[256], Instruction[256];
     char *str2;  // For recieving purpose
 
 
     // Preparing MachineOp Table
-    ReadMachineOpTable(MOTInst);
+    ReadMachineOpTable( MOTInst );
 
-    if((fp=fopen("SourceProgram.txt", "r"))==NULL)  // Opening a file to read the program
+    if((fp=fopen("SourceProgram.txt", "r"))==NULL)          // Opening a file ( read only ) to read the Source program
     {
-        printf("\nError opening Instruction file\n");  //error
+        SetColor(12);
+        printf("\nError opening Instruction file\n\a");     //error
+        SetColor(0);
         exit(0);
     }
 
-    if((fp2 = fopen("SymbolTable.txt","w")) == NULL)
+    if((fp2 = fopen("SymbolTable.txt","w")) == NULL)        // Opening a file ( write only ) to store the Symbol table
     {
-        printf("Error opening symbol Table\n");  //error
+        SetColor(12);
+        printf("Error opening symbol Table\n\a");  //error
+        SetColor(0);
         exit(0);
     }
 
+    /// Starting pass 1 : preparing symbol table
 
-    // Starting pass 1 : preparing symbol table
-    LC = 2000; // Assuming program will start at 2000 location
-    LN = 1;
+    LC = 2000;                                              // Assigning location counter to 2000
+    LN = 1;                                                 // Assigning the line counter to 1
 
     while(!feof(fp))
     {
-        fscanf(fp, " %[^\n]", str);  // Read the full sentence from the given file with comment
+        fscanf(fp, " %[^\n]", str);                         // Read the full sentence from the given file with comment
         //printf("\n%s\n", str);
 
-        str2 = DeleteExcessWhiteSpaces(str);  // Deletes all the extra spaces and tabs (no tabs will be present after execution of this function)
-        strcpy(InstructionWithComment, str2);
+        str2 = DeleteExcessWhiteSpaces(str);                // Deletes all the extra spaces and tabs ( no tabs will be present after execution of this function )
+        strcpy(InstructionWithComment, str2);               // Store the instruction in the InstructionWithComment variable
 
-        str2 = DeleteComment(str);  // In this function the comment will get deleted
-        strcpy(Instruction, str2);
+        str2 = DeleteComment(str);                          // Delete comment from the instruction
+        strcpy(Instruction, str2);                          // Store the instruction ( without comment and extra spaces ) ie. A proper instruction
         //printf("\n%s\n", Instruction);
 
-        SourceInst = GetFields(Instruction);  // In this function the fields are separated*/
+        SourceInst = GetFields(Instruction);                // Separating the fields from the Instruction ie. Label, Mnemonic, Operand1, Operand2
 
-        //  process pseudo Op
+        /// Processing PseudoOps and MachineOps
 
-        if(p = IsPseudoOp(SourceInst.Mnemonic, POT))
+        if(p = IsPseudoOp_Pass1(SourceInst.Mnemonic, POT))  // checking if the Mnemonic is pseudoOp if yes then ProcessPseudoOp_Pass1() will be executed
         {
-            printf("\nPseudoOp Found...:%d\n", p);
-            ProcessPseudoOp( p, SourceInst, &LC, fp2 , LN);
+            //printf("\nPseudoOp Found...:%d\n", p);
+            //printf( "\n\nEQU4:%04X\n\n", LC );
+            ProcessPseudoOp_Pass1( p, SourceInst, &LC, fp2 , LN);
             //exit(0);
         }
-        else
+        else               //issue                          // If the Mnemonic is not a pseudoOp then it might be machine Op if yes then execute the following functions
         {
-            MOTIndex = MOTGetPass1(MOTInst, SourceInst);
+            MOTIndex = MOTGet_Pass1(MOTInst, SourceInst);   // Identify the index of the Mnemonic in MOT and store it in MOTIndex
 
-            if(MOTIndex >= 1000)
+            if(MOTIndex >= 1000)                            // If the value returned it >=1000 that means it has some error
             {
-                DisplayError(MOTIndex, LN);
+                DisplayError(MOTIndex, LN);                 // Go to DisplayError to display the error that has occurred
             }
 
 
-            if((SourceInst.Label[0])!= '\0')  // If label call STSTO
+            if((SourceInst.Label[0])!= '\0')                // If label is present then call STSTO
             {
-                STSTO(fp2, SourceInst.Label, LC);
+                STSTO(fp2, SourceInst, LC);                 // Store the Label in symbol table file
             }
 
-            LC = LC + MOTInst[MOTIndex].Length;
+            printf("\n%s %s %d %X\n", SourceInst.Label, SourceInst.Mnemonic, MOTInst[MOTIndex].Length, LC );
+            LC = LC + MOTInst[MOTIndex].Length;             // Increment the location counter by the length of the MachineOp
         }
 
 
-        LN = LN + 1;
+        LN = LN + 1;                                        // Increment the Line counter
         //printf( "\nLINE NO:%d\n", LN );
 
     }
@@ -127,66 +137,81 @@ int main()
     fclose(fp);
 }
 
-int ProcessPseudoOp( unsigned int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2 , unsigned int LN)
+int ProcessPseudoOp_Pass1( unsigned int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2 , unsigned int LN)
 {
-    printf("P=%d", p);
+    /// Processing the PseudoOp's
+
+    //printf("PseudoOp Found=%d", p);
     if( p == 1 )
     {
-        //ProcessDB();  // Process DB pseudoOp
+        ProcessDB_Pass1( SourceInst, LC, fp2, LN );         // Process DB pseudoOp
     }
     else if( p == 2)
     {
-        ProcessDS_Pass1( SourceInst, LC, fp2, LN );  // Process DS pseudoOp
+        ProcessDS_Pass1( SourceInst, LC, fp2, LN );         // Process DS pseudoOp
     }
     else if( p == 3)
     {
-        //ProcessDW(); // Process DW pseudoOp
+        //ProcessDW();                                      // Process DW pseudoOp
     }
     else if( p == 4)
     {
-        //ProcessEND(); // Process END pseudoOp
+        ProcessEND_Pass1();                                 // Process END pseudoOp
     }
     else if( p == 5)
     {
-        ProcessEQU( SourceInst, LC, fp2, LN );  // Process EQU pseudoOp
+        //printf("\n\nEQU3:%04X\n\n", *LC );
+        ProcessEQU_Pass1( SourceInst, LC, fp2, LN );        // Process EQU pseudoOp
     }
     else if( p == 6 || p == 7)
     {
-        ProcessORGorSTART( SourceInst, LC, fp2, LN);  // Process ORG or START pseudoOp
+        ProcessORGorSTART_Pass1( SourceInst, LC, fp2, LN);  // Process ORG or START pseudoOp
     }
-    else  // In case
+    else                                                    // In case any unknown error occurs
     {
         printf("\nPseudoOp Error\n");
     }
 }
 
-int ProcessDS_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )
+int ProcessDB_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )
+{
+    if( SourceInst.Label[0] != '\0' )
+    {
+        STSTO( fp2, SourceInst, *LC ) ;
+    }
+
+    *LC = *LC + 1;
+}
+
+int ProcessEND_Pass1( void )                                  // Processing the PseudoOp END
+{
+    return(1);
+}
+
+int ProcessDS_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )   // Processing the PseudoOp DS
 {
     unsigned int OP1;
 
     OP1 = (unsigned int) atoi(SourceInst.Operand1);
-    STSTO( fp2, SourceInst.Label, *LC );
+    STSTO( fp2, SourceInst, *LC );
     *(LC) = *(LC) + OP1;
 }
 
-int ProcessEQU( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )
+int ProcessEQU_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )  //Processing the PseudoOp EQU
 {
     unsigned int temp;
-    if( !strcmp( SourceInst.Operand1, "*"))
+    if( !strcmp( SourceInst.Operand1, "*" ) )
     {
-        *(LC) = *(LC);
-        //printf("\n********FOUND\n");
-
-        STSTO( fp2, SourceInst.Label, *LC );
+        STSTO( fp2, SourceInst, *LC );
     }
     else
     {
         temp = ( unsigned int )atoi( SourceInst.Operand1 );
-        STSTO( fp2, SourceInst.Label, temp );
+        STSTO( fp2, SourceInst, temp );
     }
 }
 
-int ProcessORGorSTART( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN)
+int ProcessORGorSTART_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN)  // Processing the PseudoOps ORG and START ( both are same )
 {
     if( !strcmp( SourceInst.Operand1, "*" ))
     {
@@ -195,60 +220,83 @@ int ProcessORGorSTART( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsi
     else
     {
         *(LC) = ( unsigned int ) strtol( SourceInst.Operand1, NULL, 16);
-        printf("\nLongint:%x", *(LC));
+        //printf("\nLongint:%x", *(LC));
         //*(LC) = ( unsigned int )atoi( SourceInst.Operand1 );
         //printf( "h%d", *(LC) );
     }
 
-    STSTO( fp2, SourceInst.Label, *LC );  // Symbol table storage
+    STSTO( fp2, SourceInst, *LC );                          // Symbol table storage
 
     return(1);
 }
 
-int IsPseudoOp( char Mnemonic[], char POT[][6])  // Check for Pseudo Op
+int IsPseudoOp_Pass1( char Mnemonic[], char POT[][6])       // Check for Pseudo Op if yes then return the index of that Pseudo Op in POT or else return 0
 {
     int i;
 
-    i = 1;
+    i = 1;                                                  // as zeroth element is dummy
 
-    while(POT[i][0] != '\0')
+    while(POT[i][0] != '\0')                                // till the last element comes ie. \0
     {
-        //printf("\nmn:%s, %s\n", Mnemonic, POT[i]);
-        if(!strcmp(Mnemonic, POT[i]))
+        //printf("\PseudoOp:%s\n", Mnemonic);
+        if( !strcmp( Mnemonic, POT[i] ) )                   // If PseudoOp is found then return its index ( ie. if the mnemonic matches PseudoOp )
         {
             return(i);
         }
         i = i + 1;
     }
-    return(0);
+    return(0);                                              // Else return 0
 }
 
-void STSTO( FILE *fp2, char Label[], unsigned int LC )  // Symbol table storage
+void STSTO( FILE *fp2, struct PROG SourceInst, unsigned int LC )  // Symbol table storage
 {
-    fprintf(fp2, "%15s", Label);
-    fprintf(fp2, "%6x", LC);
-    fprintf(fp2, "\n");
+    if( !strcmp( SourceInst.Mnemonic, "EQU" ))
+    {
+        if( !strcmp( SourceInst.Operand1, "*" ))
+        {
+            fprintf( fp2, "%15s  ", SourceInst.Label );
+            fprintf( fp2, "%04X", LC );
+            fprintf( fp2, "\n" );
+        }
+        else
+        {
+            fprintf( fp2, "%15s  ", SourceInst.Label );
+            fprintf( fp2, "%s", SourceInst.Operand1 );
+            fprintf( fp2, "\n" );
+
+        }
+
+    }
+    else
+    {
+        fprintf( fp2, "%15s  ", SourceInst.Label );
+        fprintf( fp2, "%04X", LC );
+        fprintf( fp2, "\n" );
+    }
+
 }
 
-void DisplayError(unsigned int ErrorCode, unsigned int LN)
+void DisplayError( unsigned int ErrorCode, unsigned int LN )  // Display the errors that occurred during the process of the program
 {
-    char ErrorMessages[][80] = {"SYNTAX ERROR IN MNEMONIC....",
+    char ErrorMessages[][80] = { "SYNTAX ERROR IN MNEMONIC....",
                                 "SYNTAX ERROR IN OPERAND1....",
-                                "SYNTAX ERROR IN OPERAND2...."};
+                                "SYNTAX ERROR IN OPERAND2...." };
 
-    printf("\nERROR IN LINE NO: %d : %s\n\n\a", LN, ErrorMessages[ErrorCode - 1000]);
-    exit(0);
+    SetColor( 12 );
+    printf( "\nERROR IN LINE NO: %d : %s\n\n\a", LN, ErrorMessages[ErrorCode - 1000] );
+    SetColor( 0 );
+    exit( 0 );
 
 }
 
-char *DeleteComment(char str[])  // wherever there is ; or // they will be replaced with \0 to mark the end of string thus deleting the comment
+char *DeleteComment( char str[] )  // wherever there is ; or // they will be replaced with \0 to mark the end of string thus deleting the comment
 {
     int count;
     count = 0;
-    while(str[count] != '\0')
+    while( str[count] != '\0' )
     {
 
-        if(str[count] == ';' || (str[count] == '/' && str[count+1] == '/'))
+        if( str[count] == ';' || ( str[count] == '/' && str[count+1] == '/' ) )
         {
             str[count] = '\0';
         }
@@ -257,14 +305,14 @@ char *DeleteComment(char str[])  // wherever there is ; or // they will be repla
     return(str);
 }
 
-char *DeleteExcessWhiteSpaces(char str[])  // All the extra tabs and spaces will get deleted. wherever there are more than 1 space, it will be deleted and the tabs will be replaced by spaces.
+char *DeleteExcessWhiteSpaces( char str[] )  // All the extra tabs and spaces will get deleted. wherever there are more than 1 space, it will be deleted and the tabs will be replaced by spaces.
 {
     int count, i;
     char str1[256], c;
     count = 0;
-    while(str[count] != '\0')
+    while( str[count] != '\0' )
     {
-        if(str[count] == '\t')
+        if( str[count] == '\t' )
         {
             str[count] = ' ';
         }
@@ -275,13 +323,13 @@ char *DeleteExcessWhiteSpaces(char str[])  // All the extra tabs and spaces will
     i = 0;
 
 
-    while(str[count] != '\0')
+    while( str[count] != '\0' )
     {
 
-        if(str[count] == ' ')
+        if( str[count] == ' ' )
         {
 
-            while(str[count+1] == ' ')
+            while( str[count + 1] == ' ' )
             {
                 count++;
             }
@@ -292,12 +340,12 @@ char *DeleteExcessWhiteSpaces(char str[])  // All the extra tabs and spaces will
         i++;
 
     }
-    str1[i] = '\0';
-    strcpy(str,str1);
-    return(str);
+    str1[ i ] = '\0';
+    strcpy( str, str1 );
+    return( str );
 }
 
-struct PROG GetFields(char Instruction[])  // The instruction is broken down into smaller tokens for analysis and differentiating whether it is a label or mnemonic or a operand
+struct PROG GetFields( char Instruction[] )  // The instruction is broken down into smaller tokens for analysis and differentiating whether it is a label or mnemonic or a operand
 {
     char Label[12], *p, Temp[256], *p1, *p2, Mnemonic[10], Operand1[12], Operand2[12];
     struct PROG TempInst;
@@ -309,16 +357,16 @@ struct PROG GetFields(char Instruction[])  // The instruction is broken down int
     {
         *(p) = '\0';
 
-        if(p = strchr(Temp, ' '))
+        if( p = strchr( Temp, ' ' ) )
         {
             *(p) = '\0';
         }
-        if( strlen(Temp) > 11)  // Restricting label size to 11 characters
+        if( strlen( Temp ) > 11)  // Restricting label size to 11 characters
         {
-            printf("\n WARNING: LABEL IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n");
+            printf( "\n WARNING: LABEL IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n" );
             Temp[11] = '\0';
         }
-        strcpy(TempInst.Label, Temp);
+        strcpy( TempInst.Label, Temp );
         //printf("\n\nLabel:%s?\n", TempInst.Label);
     }
     else  // If Label is not present so entering \0 in the label string
@@ -328,51 +376,51 @@ struct PROG GetFields(char Instruction[])  // The instruction is broken down int
 
     // Separating mnemonics
 
-    strcpy(Temp, Instruction);
+    strcpy( Temp, Instruction );
 
-    if(p1 = strchr(Temp, ':'))  // When Label is present
+    if(p1 = strchr( Temp, ':' ) )  // When Label is present
     {
-        if(*(p1+1) == ' ')
+        if( *( p1 + 1 ) == ' ' )
         {
-            p1 = (p1+2);
+            p1 = ( p1 + 2 );
         }
         else
         {
-            p1 = (p1 + 1);
+            p1 = ( p1 + 1 );
         }
-        if(p2 = strchr(p1, ' '))
+        if( p2 = strchr( p1, ' ' ) )
         {
             *(p2) = '\0';
         }
-        strcpy(TempInst.Mnemonic, p1);
+        strcpy( TempInst.Mnemonic, p1 );
         //printf("\n\nWhen Label is present:%s?\n", TempInst.Mnemonic);
     }
     else  // When Label is absent
     {
         p1 = Temp;
 
-        if(Temp[0] == ' ')
+        if( Temp[0] == ' ' )
         {
             p1++;
         }
-        if(p2 = strchr(p1, ' '))
+        if( p2 = strchr( p1, ' ' ) )
         {
             *(p2) = '\0';
         }
 
-        strcpy(TempInst.Mnemonic, p1);
+        strcpy( TempInst.Mnemonic, p1 );
         //printf("%\n\nWhen Label is absent:%s?\n", TempInst.Mnemonic);
     }
 
 
-    // Separating operand 1
+    /// Separating operand 1
 
 
-    strcpy(Temp, Instruction);
+    strcpy( Temp, Instruction );
 
-    if(p1 = strchr(Temp, ':'))  // When Label is present
+    if(p1 = strchr( Temp, ':' ) )                              // When Label is present
     {
-        if(*(p1+1) == ' ')
+        if( *( p1 + 1 ) == ' ' )
         {
             p1 = (p1+2);
         }
@@ -380,19 +428,19 @@ struct PROG GetFields(char Instruction[])  // The instruction is broken down int
         {
             p1 = (p1 + 1);
         }
-        if(p2 = strchr(p1, ' '))
+        if( p2 = strchr( p1, ' ' ) )
         {
-            p1 = (p2+1);
+            p1 = ( p2 + 1 );
         }
-        p2 = strtok(p1, " ,");
+        p2 = strtok( p1, " ," );
 
-        if(p2 == NULL)
+        if( p2 == NULL )
         {
             TempInst.Operand1[0] = '\0';
         }
         else
         {
-            if( strlen(p1) > 11)  // Restricting Operand1 size to 11 characters
+            if( strlen(p1) > 11 )                           // Restricting Operand1 size to 11 characters
             {
                 printf("\n WARNING: OPERAND1 IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n");
                 Temp[11] = '\0';
@@ -402,7 +450,7 @@ struct PROG GetFields(char Instruction[])  // The instruction is broken down int
 
         // printf("\n\nOperand1:%s?\n", Operand1);
     }
-    else  // When Label is absent
+    else                                                    // When Label is absent
     {
         p1 = Temp;
 
@@ -505,7 +553,7 @@ int ReadMachineOpTable(struct MOT MOTInst[])
 
 }
 
-int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
+int MOTGet_Pass1(struct MOT MOTInst[], struct PROG SourceInst)
 {
     int i, index;
     char MOTStr[100], SourceStr[100];
@@ -522,7 +570,7 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
     if(i == N)
     {
         //printf("\nSYNTAX ERROR IN MNEMONIC....\n");
-        return(1000);
+        return(1000);                                    // Set error code to 1000
     }
 
     // If the instruction is of type 1, 3, 4, 5 ie. only Mnemonic
@@ -555,7 +603,7 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
         }
         if(i == N)
         {
-            return(1001);
+            return(1001);                                // Set error code to 1001
         }
 
     }
@@ -586,7 +634,7 @@ int MOTGetPass1(struct MOT MOTInst[], struct PROG SourceInst)
         }
         if(i == N)
         {
-            return(1002);
+            return(1002);                                          // Set error code to 1002
         }
     }
     return(i);
@@ -609,4 +657,5 @@ void SetColor(int ForgC)
      }
      return;
 }
+
 

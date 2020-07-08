@@ -1,0 +1,12 @@
+           PROG     0
+        DISPLAY     2
+          LOOP2     4
+          LOOP1     6
+            HEY     e
+          HELLO    11
+          DELAY    15
+            DEF    18
+         FOLLOW  2027
+           STOP    20
+           SUB1   7ec
+       DISPLAY4   7ee
