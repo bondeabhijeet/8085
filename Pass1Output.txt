@@ -1,0 +1,24 @@
+01   PROG           START       FF00H                         
+02                  MVI         A              64H            
+03   DISPLAY        OUT         PORT1                         
+04   LOOP2          MVI         B              10H            
+05   LOOP1          LXI         D              DELAY          
+06                  DCX         D                             
+07                  NOP                                       
+08                  NOP                                       
+09                  MOV         A              D              
+10                  ORA         E                             
+11   HEY            JNZ         LOOP1                         
+12   HELLO          DCR         B                             
+13                  JZ          LOOP2                         
+14   DELAY          DCR         A                             
+15                  CPI         00H                           
+16   DEF            DS          2                             
+17   DEFINE         JNZ         DISPLAY                       
+18   COUNTER        EQU         *                             
+19                  HLT                                       
+20   DAATA2         DB          03                            
+21   SUB1           MVI         A              64H            
+22   DEFINEWORD     DW          30F0                          
+23   DISPLAY4       OUT         PORT1                         
+24   HALT           HLT                                       

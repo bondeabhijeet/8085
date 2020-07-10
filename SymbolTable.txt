@@ -1,13 +1,15 @@
-           PROG  0000
-        DISPLAY  0002
-          LOOP2  0004
-          LOOP1  0006
-            HEY  000E
-          HELLO  0011
-          DELAY  0015
-            DEF  0018
-         DEFINE  001A
-         FOLLOW  1F
-         DAATA2  001E
-           SUB1  001F
-       DISPLAY4  0021
+PROG             FF00
+DISPLAY          FF02
+LOOP2            FF04
+LOOP1            FF06
+HEY              FF0E
+HELLO            FF11
+DELAY            FF15
+DEF              FF18
+DEFINE           FF1A
+COUNTER          FF1D
+DAATA2           FF1E
+SUB1             FF1F
+DEFINEWORD       FF21
+DISPLAY4         FF23
+HALT             FF25
