@@ -12,8 +12,9 @@
 #define OPERAND1_LENGTH 11
 #define OPERAND2_LENGTH 11
 #define OPCODE_LENGTH 2
-#define LABELVALUE_LENGTH 4     //  Maximum label value will be FFFF
+#define LABEL_VALUE_LENGTH 4     //  Maximum label value will be FFFF
 #define COMMENT_LENGTH 50
+#define MAX_NO_OF_ST_ENTRIES 200  // ST stands for Symbol Table
 
 /*ERROR CODES:
 1000: SYNTAX ERROR IN MNEMONIC....
@@ -38,8 +39,26 @@ struct PROG // PROG stands for program
     char Operand2[OPERAND2_LENGTH + 1];
 };
 
+struct SYMBOLTABLEDEF
+{
+    char Symbol[LABEL_LENGTH + 1];
+    int Value;
+};
 
-char *DeleteComment( char str[], char Comment[] );
+struct DEFP1OUTPUT
+{
+    unsigned int LC;
+    char Label[LABEL_LENGTH + 1];
+    char Mnemonic[MNEMONIC_LENGTH + 1];
+    char Operand1[OPERAND1_LENGTH + 1];
+    char Operand2[OPERAND2_LENGTH + 1];
+    char OpCode[OPCODE_LENGTH + 1];
+    int IType;
+    char Comment[COMMENT_LENGTH + 1];
+};
+
+
+char *SplitInstructionAndComment( char str[], char Comment[] );
 char *DeleteExcessWhiteSpaces( char str[] );
 struct PROG GetFields( char Instruction[] );
 int ReadMachineOpTable( struct MOT MOTInst[] );
@@ -56,6 +75,15 @@ int ProcessDW_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsign
 int ProcessEND_Pass1( void );
 int CheckSymbolTableForDuplicates( void );
 int GetComment( char InstructionWithComment[], char Comment[] );
+int WritePass1OutputToFile( struct PROG SourceInst, struct MOT MOTInst[], int MOTIndex, unsigned int MOTFlag, unsigned int LC, char Comment[], FILE *fp3 );
+int Pass2( void );
+int ReadSymbolTable( struct SYMBOLTABLEDEF ST[] );
+struct DEFP1OUTPUT GetP1OutputInst( FILE *P1OutputFP );
+int ProcessMachineInstType1( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP );
+int ProcessMachineInstType2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP );
+int ProcessMachineInstType3( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP, struct SYMBOLTABLEDEF ST[], int NoOfSTEntries );
+int ProcessMachineInstType4( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP, struct SYMBOLTABLEDEF ST[], int NoOfSTEntries );
+int STGet( char Operand1[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries );
 void SetColor( int ForgC );
 
 
@@ -73,7 +101,7 @@ int main()
 
     ReadMachineOpTable( MOTInst );                          // Reading MachineOp Table from the text file and store it into a structure
 
-    if((fp=fopen("SourceProgram.txt", "r"))==NULL)          // Opening a file ( read only ) to read the Source program
+    if( ( fp=fopen("SourceProgram.txt", "r" ) ) == NULL )          // Opening a file ( read only ) to read the Source program
     {
         SetColor(12);
         printf("\nError opening Source Instruction file\n\a");     //error
@@ -110,11 +138,12 @@ int main()
         str2 = DeleteExcessWhiteSpaces(str);                // Deletes all the extra spaces and tabs ( no tabs will be present after execution of this function )
         strcpy(InstructionWithComment, str2);               // Store the instruction in the InstructionWithComment variable
 
-        str2 = DeleteComment(str, Comment);                 // Delete comment from the instruction
-        printf("%s\n", Comment );
+        str2 = SplitInstructionAndComment(str, Comment);    // Delete comment from the instruction
         strcpy(Instruction, str2);                          // Store the instruction ( without comment and extra spaces ) ie. A proper instruction
 
         SourceInst = GetFields(Instruction);                // Separating the fields from the Instruction ie. Label, Mnemonic, Operand1, Operand2
+
+        /// PASS 1 STARTS HERE
 
         /// Processing PseudoOps and MachineOps
 
@@ -137,9 +166,295 @@ int main()
             MOTFlag = 1;
         }
 
-
         /// Storing the result of PASS1 in a file ( Pass1Output.txt )
 
+        WritePass1OutputToFile( SourceInst, MOTInst, MOTIndex, MOTFlag, LC, Comment, fp3 );
+
+        LN = LN + 1;                                        // Increment the Line counter by 1
+
+    }
+
+    fclose( fp );                                           // Closing all the files
+    fclose( fp2 );
+    fclose( fp3 );
+
+    CheckSymbolTableForDuplicates( );                        // Checking symbol table for any duplicate ( ie. repeated ) symbols
+
+    Pass2();
+
+}
+
+   /// MAIN ENDS HERE
+
+int Pass2( void )
+{
+    int NoOfSTEntries, i;
+    FILE *P1OutputFP, *P2OutputFP;
+    struct SYMBOLTABLEDEF ST[MAX_NO_OF_ST_ENTRIES];  // ST for Symbol Table
+    struct DEFP1OUTPUT P1OutputInst;
+
+    // Reading Symbol Table from file and store it in a structural array
+
+    NoOfSTEntries = ReadSymbolTable( ST );
+
+    /*
+    for(i=0; i<NoOfSTEntries; ++i)
+    {
+        printf( "%-15s", ST[i].Symbol );
+        printf( "%04X\n", ST[i].Value );
+    }
+    */
+
+    if( ( P1OutputFP = fopen( "Pass1Output.txt", "r" ) ) == NULL )
+    {
+        SetColor( 12 );
+        printf("\nERROR OPENING Pass1Output.txt FILE\n\n\a ");
+        SetColor( 0 );
+        exit( 0 );
+    }
+
+    if( ( P2OutputFP = fopen( "Pass2Output.txt", "w" ) ) == NULL)
+    {
+        SetColor( 12 );
+        printf("\nERROR OPENING Pass2Output.txt FILE\n\n\a ");
+        SetColor( 0 );
+        exit( 0 );
+    }
+
+    while( !feof( P1OutputFP ) )
+    {
+        P1OutputInst = GetP1OutputInst( P1OutputFP );
+
+        if( P1OutputInst.IType == 1 )
+        {
+            ProcessMachineInstType1( P1OutputInst, P2OutputFP );
+        }
+        else if( P1OutputInst.IType == 2 )
+        {
+            ProcessMachineInstType2( P1OutputInst, P2OutputFP );
+        }
+        else if( P1OutputInst.IType == 3 )
+        {
+            ProcessMachineInstType3( P1OutputInst, P2OutputFP, ST, NoOfSTEntries );
+        }
+        else if( P1OutputInst.IType == 4 )
+        {
+            ProcessMachineInstType4( P1OutputInst, P2OutputFP, ST, NoOfSTEntries );
+        }
+    }
+
+    fclose( P1OutputFP );
+    fclose( P2OutputFP );
+}
+
+int ProcessMachineInstType4( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP, struct SYMBOLTABLEDEF ST[], int NoOfSTEntries )
+{
+    int SValue;
+    char temp[5];
+
+    SValue = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries );
+
+    /// TO B MODIFIED
+
+    fprintf( P2OutputFP, "%04X ", P1OutputInst.LC );         // Printing Location Counter or Address
+    fprintf( P2OutputFP, "%-3s ", P1OutputInst.OpCode );     // Printing OpCode
+
+    if( SValue == ( -1 ) )
+    {
+        strcpy( temp, P1OutputInst.Operand1 );               // To remove H we copy the operand in temp and then cut out the H
+        temp[2] = '\0';
+        //printf("%s", temp);
+        fprintf( P2OutputFP, "%-8s", temp );                 // For absence Operand 1
+    }
+    else
+    {
+        printf("%X\n", SValue);
+        fprintf( P2OutputFP, "%02X%6s", SValue, " " );       // For absence Operand 1
+    }
+    fprintf( P2OutputFP, "%-8s", " " );                      // For absence Operand 2
+
+    /// Assembling and printing Source Instruction-------------------------------------------------------------
+
+    if( P1OutputInst.Label[0] != '?')                        // If label is present
+    {
+        strcat( P1OutputInst.Label, ":");                    // Appending ":"
+        fprintf( P2OutputFP, "%-15s", P1OutputInst.Label);   // Printing label
+    }
+    else                                                     // If label is absent
+    {
+        fprintf( P2OutputFP, "%-15s", " " );                 // Printing blank spaces
+    }
+
+    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );   // Printing Mnemonic
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );                     // Printing Operand 1
+    fprintf( P2OutputFP, "%-15s", " " );                     // Printing Operand 2
+
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );     // Printing Comment
+}
+
+int ProcessMachineInstType3( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP, struct SYMBOLTABLEDEF ST[], int NoOfSTEntries )
+{
+    int SValue;
+    char temp[5];
+
+    SValue = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries );
+
+    /// TO B MODIFIED
+
+    fprintf( P2OutputFP, "%04X ", P1OutputInst.LC );         // Printing Location Counter or Address
+    fprintf( P2OutputFP, "%-3s ", P1OutputInst.OpCode );     // Printing OpCode
+
+    if( SValue == ( -1 ) )
+    {
+        strcpy( temp, P1OutputInst.Operand1 );               // To remove H we copy the operand in temp and then cut out the H
+        temp[2] = '\0';
+        fprintf( P2OutputFP, "%-8s", temp );                 // For absence Operand 1
+    }
+    else
+    {
+        fprintf( P2OutputFP, "%02X%6s", SValue, " " );       // For absence Operand 1
+    }
+    fprintf( P2OutputFP, "%-8s", " " );                      // For absence Operand 2
+
+    /// Assembling and printing Source Instruction-------------------------------------------------------------
+
+    if( P1OutputInst.Label[0] != '?')                        // If label is present
+    {
+        strcat( P1OutputInst.Label, ":");                    // Appending ":"
+        fprintf( P2OutputFP, "%-15s", P1OutputInst.Label);   // Printing label
+    }
+    else                                                     // If label is absent
+    {
+        fprintf( P2OutputFP, "%-15s", " " );                 // Printing blank spaces
+    }
+
+    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );   // Printing Mnemonic
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );                     // Printing Operand 1
+    fprintf( P2OutputFP, "%-15s", " " );                     // Printing Operand 2
+
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );     // Printing Comment
+}
+
+int STGet( char Operand1[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries )
+{
+    int i;
+
+    for (i=0; i<NoOfSTEntries; ++i)
+    {
+        if( !strcasecmp( Operand1, ST[i].Symbol ) )
+        {
+            return( ST[i].Value );
+        }
+    }
+
+    return( -1 );
+}
+
+
+int ProcessMachineInstType2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
+{
+    fprintf( P2OutputFP, "%04X ", P1OutputInst.LC );         // Printing Location Counter or Address
+    fprintf( P2OutputFP, "%-3s ", P1OutputInst.OpCode );     // Printing OpCode
+
+    fprintf( P2OutputFP, "%-8s", " " );                      // For absence Operand 1
+    fprintf( P2OutputFP, "%-8s", " " );                      // For absence Operand 2
+
+    /// Assembling and printing Source Instruction-------------------------------------------------------------
+
+    if( P1OutputInst.Label[0] != '?')                        // If label is present
+    {
+        strcat( P1OutputInst.Label, ":");                    // Appending ":"
+        fprintf( P2OutputFP, "%-15s", P1OutputInst.Label);   // Printing label
+    }
+    else                                                     // If label is absent
+    {
+        fprintf( P2OutputFP, "%-15s", " " );                 // Printing blank spaces
+    }
+
+    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );   // Printing Mnemonic
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );   // Printing Operand 1
+    fprintf( P2OutputFP, "%-15s", " " );                     // Printing Operand 2
+
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );     // Printing Comment
+}
+
+
+int ProcessMachineInstType1( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
+{
+    fprintf( P2OutputFP, "%04X ", P1OutputInst.LC );         // Printing Location Counter or Address
+    fprintf( P2OutputFP, "%-3s ", P1OutputInst.OpCode );     // Printing OpCode
+    fprintf( P2OutputFP, "%-8s", " " );                      // For absence Operand 1
+    fprintf( P2OutputFP, "%-8s", " " );                      // For absence Operand 2
+
+    /// Assembling and printing Source Instruction-------------------------------------------------------------
+
+    if( P1OutputInst.Label[0] != '?')                        // If label is present
+    {
+        strcat( P1OutputInst.Label, ":");                    // Appending ":"
+        fprintf( P2OutputFP, "%-15s", P1OutputInst.Label);   // Printing label
+    }
+    else                                                     // If label is absent
+    {
+        fprintf( P2OutputFP, "%-15s", " " );                 // Printing blank spaces
+    }
+
+    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );   // Printing Mnemonic
+    fprintf( P2OutputFP, "%-15s", " " );                     // Printing Operand 1
+    fprintf( P2OutputFP, "%-15s", " " );                     // Printing Operand 2
+
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );     // Printing Comment
+}
+
+struct DEFP1OUTPUT GetP1OutputInst( FILE *P1OutputFP )
+{
+    struct DEFP1OUTPUT P1OutputInst;
+
+    fscanf( P1OutputFP, "%X", &P1OutputInst.LC );
+    fscanf( P1OutputFP, "%s", P1OutputInst.Label );
+    fscanf( P1OutputFP, "%s", P1OutputInst.Mnemonic);
+    fscanf( P1OutputFP, "%s", P1OutputInst.Operand1 );
+    fscanf( P1OutputFP, "%s", P1OutputInst.Operand2 );
+    fscanf( P1OutputFP, "%s", P1OutputInst.OpCode );
+    fscanf( P1OutputFP, "%d", &P1OutputInst.IType );
+    fscanf( P1OutputFP, " %[^\n]\n", P1OutputInst.Comment );
+
+    return( P1OutputInst );
+}
+
+
+int ReadSymbolTable( struct SYMBOLTABLEDEF ST[] )
+{
+    FILE *STFP;  // Symbol Table File Pointer
+    int NoOfSTEntries;
+
+    // Reading Symbol Table from file and store it in a structural array
+    if( ( STFP = fopen( "SymbolTable.txt", "r" ) ) == NULL )
+    {
+        SetColor( 12 );
+        printf( "Error opening Pass1Output.txt file for read purpose\n\n\a" );
+        SetColor( 0 );
+        exit( 0 );
+    }
+
+    NoOfSTEntries = 0;
+
+    while( !feof( STFP ) )
+    {
+        fscanf( STFP, "%s", ST[NoOfSTEntries].Symbol );
+        fscanf( STFP, "%X\n", &ST[NoOfSTEntries].Value );
+        printf("%X\n", ST[NoOfSTEntries].Value );
+
+        NoOfSTEntries = NoOfSTEntries + 1;
+    }
+
+    fclose( STFP );
+
+    return( NoOfSTEntries );
+}
+
+
+int WritePass1OutputToFile( struct PROG SourceInst, struct MOT MOTInst[], int MOTIndex, unsigned int MOTFlag, unsigned int LC, char Comment[], FILE *fp3 )
+{
         if( SourceInst.Label[0] == '\0')                    // If there is no label then
         {
             SourceInst.Label[0] = '?'; SourceInst.Label[1] = '\0';  // put "?" at that location and then put \0 as, while reading the file \0 is not identified
@@ -180,25 +495,15 @@ int main()
 
         fprintf( fp3, "%s\n", Comment );
 
-        LN = LN + 1;                                        // Increment the Line counter by 1
-
-    }
-
-    fclose( fp );                                           // Closing all the files
-    fclose( fp2 );
-    fclose( fp3 );
-
-    CheckSymbolTableForDuplicates( );                        // Checking symbol table for any duplicate ( ie. repeated ) symbols
 }
 
-   /// MAIN ENDS HERE
 
 
 
 int CheckSymbolTableForDuplicates( void )                   // Checking symbol table for any duplicate ( ie. repeated ) symbols
 {
     FILE *fp;
-    char Label[100][LABEL_LENGTH + 1], LabelValue[LABELVALUE_LENGTH + 1];  //**
+    char Label[100][LABEL_LENGTH + 1], LabelValue[LABEL_VALUE_LENGTH + 1];  //**
     int i, j, n;
 
     if( ( fp = fopen( "SymbolTable.txt","r" ) ) == NULL )        // Opening a file for checking duplicates for Symbol
@@ -422,7 +727,7 @@ void DisplayError( unsigned int ErrorCode, unsigned int LN )  // Display the err
 
 }
 
-char *DeleteComment( char str[], char Comment[] )  // wherever there is ; or // they will be replaced with \0 to mark the end of string thus deleting the comment
+char *SplitInstructionAndComment( char str[], char Comment[] )  // wherever there is ; or // they will be replaced with \0 to mark the end of string thus deleting the comment
 {
     int count, IsComment;
     //char str1[50];
@@ -444,13 +749,11 @@ char *DeleteComment( char str[], char Comment[] )  // wherever there is ; or // 
     {
         count = count + 1; Comment[0] = '/';
         strcpy( &Comment[1], &str[count] );
-        //printf("%s\n", Comment );
     }
     else
     {
         Comment[0] = '?';
         Comment[1] = '\0';
-        //printf("%s\n", Comment );
     }
 
     Comment[COMMENT_LENGTH + 1] = '\0';   // Restricting comment length to output file to 50 characters
@@ -517,7 +820,7 @@ struct PROG GetFields( char Instruction[] )  // The instruction is broken down i
         }
         if( strlen( Temp ) > LABEL_LENGTH )  // Restricting label size to 11 characters
         {
-            printf( "\n WARNING: LABEL IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n" );
+            printf( "\n WARNING: LABEL IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n \a" );
             Temp[LABEL_LENGTH] = '\0';
         }
         strcpy( TempInst.Label, Temp );
@@ -596,7 +899,7 @@ struct PROG GetFields( char Instruction[] )  // The instruction is broken down i
         {
             if( strlen(p1) > OPERAND1_LENGTH )                           // Restricting Operand1 size to 11 characters
             {
-                printf("\n WARNING: OPERAND1 IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n");
+                printf("\n WARNING: OPERAND1 IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n \a");
                 *( p1 + OPERAND1_LENGTH ) = '\0';
             }
             strcpy( TempInst.Operand1, p1 );
@@ -626,7 +929,7 @@ struct PROG GetFields( char Instruction[] )  // The instruction is broken down i
         {
             if( strlen(p1) > OPERAND1_LENGTH )  // Restricting Operand1 size to 11 characters
             {
-                printf( "\n WARNING: OPERAND1 IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n" );
+                printf( "\n WARNING: OPERAND1 IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n \a" );
                 Temp[OPERAND1_LENGTH] = '\0';
             }
             strcpy( TempInst.Operand1, p1 );
@@ -651,7 +954,7 @@ struct PROG GetFields( char Instruction[] )  // The instruction is broken down i
         }
         if( strlen(p1) > OPERAND2_LENGTH )  // Restricting Operand2 size to 11 characters
         {
-            printf( "\n WARNING: OPERAND2 IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n" );
+            printf( "\n WARNING: OPERAND2 IS TOO BIG....ONLY FIRST 11 CHARACTERS ARE SIGNIFICANT \n \a" );
             *(p1 + OPERAND2_LENGTH ) = '\0';
         }
         strcpy( TempInst.Operand2, p1 );
@@ -812,5 +1115,6 @@ void SetColor(int ForgC)
      }
      return;
 }
+
 
 

@@ -1,0 +1,11 @@
+0002 D3  06              DISPLAY:       OUT         PORT2                         //02 03
+0009 1B                                 DCX         D                             // 09
+000A 00                                 NOP                                       //0A
+000B 00                                 NOP                                       //0B
+000D B3                                 ORA         E                             // 0D
+0011 05                  HELLO:         DCR         B                             // 11
+0015 3D                  DELAY:         DCR         A                             // 15
+0016 FE  0F                             CPI         COUNTER                       // 16 17
+001D 76                                 HLT                                       //1D
+0023 D3  01              DISPLAY4:      OUT         PORT1                         // 23 24
+0025 76                  HALT:          HLT                                       //25

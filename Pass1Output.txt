@@ -1,24 +1,26 @@
-01   PROG           START       FF00H                         
-02                  MVI         A              64H            
-03   DISPLAY        OUT         PORT1                         
-04   LOOP2          MVI         B              10H            
-05   LOOP1          LXI         D              DELAY          
-06                  DCX         D                             
-07                  NOP                                       
-08                  NOP                                       
-09                  MOV         A              D              
-10                  ORA         E                             
-11   HEY            JNZ         LOOP1                         
-12   HELLO          DCR         B                             
-13                  JZ          LOOP2                         
-14   DELAY          DCR         A                             
-15                  CPI         00H                           
-16   DEF            DS          2                             
-17   DEFINE         JNZ         DISPLAY                       
-18   COUNTER        EQU         *                             
-19                  HLT                                       
-20   DAATA2         DB          03                            
-21   SUB1           MVI         A              64H            
-22   DEFINEWORD     DW          30F0                          
-23   DISPLAY4       OUT         PORT1                         
-24   HALT           HLT                                       
+0000    PROG           START       *              ?              ?    -99     // 00
+0000    ?              MVI         A              64H            3E   8       // 00 01
+0002    DISPLAY        OUT         PORT2          ?              D3   4       //02 03
+0004    LOOP2          MVI         B              10H            06   8       // 04 05
+0006    LOOP1          LXI         D              DELAY          11   9       // 06 07 08
+0009    ?              DCX         D              ?              1B   2       // 09
+000A    ?              NOP         ?              ?              00   1       //0A
+000B    ?              NOP         ?              ?              00   1       //0B
+000C    ?              MOV         A              D              7A   7       //0C
+000D    ?              ORA         E              ?              B3   2       // 0D
+000E    HEY            JNZ         LOOP1          ?              C2   5       //0E 0F 10
+0011    HELLO          DCR         B              ?              05   2       // 11
+0012    ?              JZ          LOOP2          ?              CA   5       //12 13 14
+0015    DELAY          DCR         A              ?              3D   2       // 15
+0016    ?              CPI         COUNTER        ?              FE   3       // 16 17
+001A    DEF            DS          2              ?              ?    -99     // 18 19
+001A    DEFINE         JNZ         DISPLAY        ?              C2   5       // 1A 1B 1C
+001D    COUNTER        EQU         0F             ?              ?    -99     ?
+001D    ?              HLT         ?              ?              76   1       //1D
+001F    DAATA2         DB          03             ?              ?    -99     //1E
+001F    SUB1           MVI         A              64H            3E   8       //1F 20
+0023    DEFINEWORD     DW          30F0           ?              ?    -99     // 21 22
+0023    DISPLAY4       OUT         PORT1          ?              D3   4       // 23 24
+0025    PORT2          EQU         06H            ?              ?    -99     ?
+0025    PORT1          EQU         01H            ?              ?    -99     ?
+0025    HALT           HLT         ?              ?              76   1       //25
