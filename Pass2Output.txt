@@ -1,6 +1,17 @@
-PROG           START       *                             
-                                        DEF            DS          2                             // 18 19
-                                        COUNTER        EQU         0F                            
-                                        PORT2          EQU         3000H                         
-                                        PORT1          EQU         01H                           
-                                        END         ?                             
+                              PROG           START       *                                        
+000A  00                                     NOP                                       //0A
+000B  00                                     NOP                                       //0B
+0018                          DEF            DS          2                             // 18 19
+0019  
+                              COUNTER        EQU         0F                            //1D
+001D  76                                     HLT                                       //1D
+001E  2F                      CMA1           CMA                                       //1E
+001F  03                      DAATA2         DB          03                            //1F
+0022  30                      DEFINEWORD     DW          30F0                          // 22 23
+0023  F0    
+                              PORT2          EQU         3000H                         // 26
+                              PORT1          EQU         01H                           // 26
+0026  2F                      CMA2           CMA                                       // 26
+0027  27                                     DAA                                                  
+0028  76                      HALT           HLT                                       // 27
+                              HELLLO         END                                       // 28

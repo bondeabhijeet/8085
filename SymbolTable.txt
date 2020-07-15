@@ -8,11 +8,13 @@ DELAY            0015
 DEF              0018
 DEFINE           001A
 COUNTER          0F
+CMA1             001E
 DAATA2           001F
 SUB1             0020
 DEFINEWORD       0022
 DISPLAY4         0024
 PORT2            3000
 PORT1            01
-YO               0026
-HALT             0027
+CMA2             0026
+HALT             0028
+HELLLO           0029
