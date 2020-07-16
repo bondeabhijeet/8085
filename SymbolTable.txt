@@ -2,8 +2,11 @@ PROG             0000
 DISPLAY          0002
 LOOP2            0004
 LOOP1            0006
+LAB              5678
+RP               B
 HEY              000E
 HELLO            0011
+FD               C
 DELAY            0015
 DEF              0018
 DEFINE           001A
@@ -13,8 +16,9 @@ DAATA2           001F
 SUB1             0020
 DEFINEWORD       0022
 DISPLAY4         0024
-PORT2            3000
+PORT2            30
 PORT1            01
 CMA2             0026
-HALT             0028
-HELLLO           0029
+RST7             0027
+PUSH1            0028
+HALT             0029

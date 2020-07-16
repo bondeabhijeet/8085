@@ -1,17 +1,50 @@
-                              PROG           START       *                                        
-000A  00                                     NOP                                       //0A
-000B  00                                     NOP                                       //0B
-0018                          DEF            DS          2                             // 18 19
+            PROG           START   *                                        
+0000  3E                   MVI     A              64H            // 00 01
+0001  64     
+0002  D3    DISPLAY        OUT     PORT2                         //02 03
+0003  30     
+0004  06    LOOP2          MVI     B              10H            // 04 05
+0005  10     
+0006  11    LOOP1          LXI     D              LAB            // 06 07 08
+0007  78     
+0008  56     
+            LAB            EQU     5678H                         //
+0009  0B                   DCX     RP                            // 09
+            RP             EQU     B                             // 
+000A  00                   NOP                                   //0A
+000B  00                   NOP                                   //0B
+000C  78                   MOV     A              B              //0C
+000D  B3                   ORA     E                             // 0D
+000E  C2    HEY            JNZ     LOOP1                         //0E 0F 10
+000F  06     
+0010  00     
+0011  0D    HELLO          DCR     FD                            // 11
+            FD             EQU     C                             //
+0012  CA                   JZ      LOOP2                         //12 13 14 
+0013  04     
+0014  00     
+0015  3D    DELAY          DCR     A                             // 15
+0016  FE                   CPI     COUNTER                       // 16 17
+0017  0F     
+0018        DEF            DS      2                             // 18 19
 0019  
-                              COUNTER        EQU         0F                            //1D
-001D  76                                     HLT                                       //1D
-001E  2F                      CMA1           CMA                                       //1E
-001F  03                      DAATA2         DB          03                            //1F
-0022  30                      DEFINEWORD     DW          30F0                          // 22 23
-0023  F0    
-                              PORT2          EQU         3000H                         // 26
-                              PORT1          EQU         01H                           // 26
-0026  2F                      CMA2           CMA                                       // 26
-0027  27                                     DAA                                                  
-0028  76                      HALT           HLT                                       // 27
-                              HELLLO         END                                       // 28
+001A  C2    DEFINE         JNZ     DISPLAY                       // 1A 1B 1C
+001B  02     
+001C  00     
+            COUNTER        EQU     0F                            //1D
+001D  76                   HLT                                   //1D
+001E  2F    CMA1           CMA                                   //1E
+001F  03    DAATA2         DB      03                            //1F
+0020  3E    SUB1           MVI     A              64H            // 20 21
+0021  64     
+0022  F0    DEFINEWORD     DW      30F0                          // 22 23
+0023  30    
+0024  D3    DISPLAY4       OUT     PORT1                         // 24 25
+0025  01     
+            PORT2          EQU     30H                           // 26
+            PORT1          EQU     01H                           // 26
+0026  2F    CMA2           CMA                                   // 26
+0027  FF    RST7           RST     7                             // 27
+0028  F5    PUSH1          PUSH    PSW                           //28
+0029  76    HALT           HLT                                   // 29
+                           END                                   // 

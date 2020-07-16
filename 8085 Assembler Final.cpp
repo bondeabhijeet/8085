@@ -91,7 +91,15 @@ int ProcessDS_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP );
 int ProcessDB_Pass2( struct DEFP1OUTPUT Temp, FILE *P2OutputFP );
 int ProcessDW_Pass2( struct DEFP1OUTPUT Temp, FILE *P2OutputFP );
 int ProcessMOType1( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], FILE *P2OutputFP, unsigned int LN );
-int ProcessMachineOpPass2( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], FILE *P2OutputFP, unsigned int LN );
+int ProcessMachineOpPass2( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
+int ProcessMOType26( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
+int MOTGet_Pass2( struct MOT MOTInst[], char ConcatenatedString[], struct DEFP1OUTPUT P1OutputInst, unsigned int LN );
+int ProcessMOType1( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], FILE *P2OutputFP, unsigned int LN );
+int ProcessMOType34( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
+int ProcessMOType5( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
+int ProcessMOType7( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
+int ProcessMOType8( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
+int ProcessMOType9( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
 void SetColor( int ForgC );
 
 
@@ -206,20 +214,6 @@ int Pass2( struct MOT MOTInst[], char POT[][6] )
 
     NoOfSTEntries = ReadSymbolTable( ST );
 
-
-    /*
-    for(i=0; i<NoOfSTEntries; ++i)
-    {
-        printf( "%-15s", ST[i].Symbol );
-        printf( "%s\n", ST[i].Value );
-    }
-
-    STIndex = STGet( ST[4].Symbol, ST, NoOfSTEntries );
-
-    printf("\n\n%s\n\n", ST[STIndex].Value );
-    */
-
-
     if( ( P1OutputFP = fopen( "Pass1Output.txt", "r" ) ) == NULL )
     {
         SetColor( 12 );
@@ -241,13 +235,13 @@ int Pass2( struct MOT MOTInst[], char POT[][6] )
     {
         P1OutputInst = GetP1OutputInst( P1OutputFP );
 
-        if( p = IsPseudoOp_Pass1( P1OutputInst.Mnemonic, POT ) )  // checking if the Mnemonic is pseudoOp if yes then ProcessPseudoOp_Pass1() will be executed
+        if( ( p = IsPseudoOp_Pass1( P1OutputInst.Mnemonic, POT ) ) )  // checking if the Mnemonic is pseudoOp if yes then ProcessPseudoOp_Pass1() will be executed
         {
             ProcessPseudoOp_Pass2( P1OutputInst, P2OutputFP, p, LN );
         }
         else
         {
-            ProcessMachineOpPass2( P1OutputInst, MOTInst, P2OutputFP, LN );
+            ProcessMachineOpPass2( P1OutputInst, MOTInst, ST, NoOfSTEntries, P2OutputFP, LN );
         }
 
         LN = LN + 1;
@@ -257,9 +251,10 @@ int Pass2( struct MOT MOTInst[], char POT[][6] )
     fclose( P2OutputFP );
 }
 
-int ProcessMachineOpPass2( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], FILE *P2OutputFP, unsigned int LN )
+int ProcessMachineOpPass2( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
 {
     char Spaces11[] = "           ";
+    //int MOTIndex;                           // MOTIndex variable is Local and different than the one used in Pass 1
     /*
      * If the fields of P1OutputInst ( ie. Label, Mnemonic, Operand1, Operand2, and Comment) are empty ( ie. indicated
      * by ? ) then place spaces in those fields in temp variable.
@@ -286,28 +281,382 @@ int ProcessMachineOpPass2( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[]
         P1OutputInst.Comment[11] = '\0';           // And terminate the Operand 2 string
     }
 
-    if( P1OutputInst.IType == 1)
+    if( P1OutputInst.IType == 1 )
     {
-        ProcessMOType1( P1OutputInst, MOTInst, P2OutputFP, LN );
+         ProcessMOType1( P1OutputInst, MOTInst, P2OutputFP, LN );
+    }
+    else if( P1OutputInst.IType == 2 || P1OutputInst.IType == 6 )
+    {
+        ProcessMOType26( P1OutputInst, MOTInst, ST, NoOfSTEntries, P2OutputFP, LN );
+    }
+    else if( P1OutputInst.IType == 3 || P1OutputInst.IType == 4 )
+    {
+        ProcessMOType34( P1OutputInst, MOTInst, ST, NoOfSTEntries, P2OutputFP, LN );
+    }
+    else if( P1OutputInst.IType == 5 )
+    {
+        ProcessMOType5( P1OutputInst, MOTInst, ST, NoOfSTEntries, P2OutputFP, LN );
+    }
+    else if( P1OutputInst.IType == 7 )
+    {
+        ProcessMOType7( P1OutputInst, MOTInst, ST, NoOfSTEntries, P2OutputFP, LN );
+    }
+    else if( P1OutputInst.IType == 8 )
+    {
+        ProcessMOType8( P1OutputInst, MOTInst, ST, NoOfSTEntries, P2OutputFP, LN );
+    }
+    else if( P1OutputInst.IType == 9 )
+    {
+        ProcessMOType9( P1OutputInst, MOTInst, ST, NoOfSTEntries, P2OutputFP, LN );
     }
 }
 
-int ProcessMOType1( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], FILE *P2OutputFP, unsigned int LN )
+///****************************************************************************************************************************************************************
+
+int ProcessMOType9( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
 {
-    int Index;
+    int STIndex, MOTIndex;                                                        // MOTIndex variable is Local and different than the one used in Pass 1
+    char ConcatenatedString[20], SourceOperand1[OPERAND1_LENGTH + 1], SourceOperand2[OPERAND2_LENGTH + 1];
+    char HigherByte[3], LowerByte[3];
 
-    Index  = MOTGet_Pass1( MOTInst, P1OutputInst.Mnemonic, LN );
+    strcpy( SourceOperand1, P1OutputInst.Operand1 );
+    strcpy( SourceOperand2, P1OutputInst.Operand2 );
 
-    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );
-    fprintf( P2OutputFP, "%s", MOTInst[Index].OpCode );
-    fprintf( P2OutputFP, "%-22s", " " );
+    if( ( STIndex = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    if( ( STIndex = STGet( P1OutputInst.Operand2, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand2, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    // Making SearchString for the instruction
+
+    strcpy( ConcatenatedString, P1OutputInst.Mnemonic );                          // Copying the Mnemonic in ConcatenatedString for the searching process
+    strcat( ConcatenatedString, P1OutputInst.Operand1 );
+
+    // Sending the SearchString for searching MOT and getting MOTIndex
+
+    MOTIndex =  MOTGet_Pass2( MOTInst, ConcatenatedString, P1OutputInst, LN );
+
+    P1OutputInst.Operand2[4] = '\0';                                            // Deleting H from the Operand 2
+    HigherByte[0] = P1OutputInst.Operand2[0];
+    HigherByte[1] = P1OutputInst.Operand2[1];
+    HigherByte[2] = '\0';
+    LowerByte[0] = P1OutputInst.Operand2[2];
+    LowerByte[1] = P1OutputInst.Operand2[3];
+    LowerByte[2] = '\0';
+
+    // Writing the processed output to the P2OutputFP File
+
+    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%s", MOTInst[MOTIndex].OpCode );     // Put OpCode in P2Output File
+
+    fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
-    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
-    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand1 );            // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand2 );            // Put Operand 2 in P2Output File
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
+
+    fprintf( P2OutputFP, "%04X  ", ( P1OutputInst.LC + 1 ) );  // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%-7s\n", LowerByte );      // Put Operand 1 in P2Output File
+
+    fprintf( P2OutputFP, "%04X  ", ( P1OutputInst.LC + 2 ) );  // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%-7s\n", HigherByte );      // Put Operand 1 in P2Output File
+}
+
+
+int ProcessMOType8( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
+{
+    int STIndex, MOTIndex;                                                        // MOTIndex variable is Local and different than the one used in Pass 1
+    char ConcatenatedString[20], SourceOperand1[OPERAND1_LENGTH + 1], SourceOperand2[OPERAND2_LENGTH + 1];
+
+    strcpy( SourceOperand1, P1OutputInst.Operand1 );
+    strcpy( SourceOperand2, P1OutputInst.Operand2 );
+
+    if( ( STIndex = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    if( ( STIndex = STGet( P1OutputInst.Operand2, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand2, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    // Making SearchString for the instruction
+
+    strcpy( ConcatenatedString, P1OutputInst.Mnemonic );                          // Copying the Mnemonic in ConcatenatedString for the searching process
+    strcat( ConcatenatedString, P1OutputInst.Operand1 );
+
+    // Sending the SearchString for searching MOT and getting MOTIndex
+
+    MOTIndex =  MOTGet_Pass2( MOTInst, ConcatenatedString, P1OutputInst, LN );
+
+    P1OutputInst.Operand2[2] = '\0';                                            // Deleting H from the Operand 2
+
+    // Writing the processed output to the P2OutputFP File
+
+    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%s", MOTInst[MOTIndex].OpCode );     // Put OpCode in P2Output File
+
+    fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand1 );            // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand2 );            // Put Operand 2 in P2Output File
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
+
+    fprintf( P2OutputFP, "%04X  ", ( P1OutputInst.LC + 1 ) );  // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%-7s\n", P1OutputInst.Operand2 );      // Put Operand 1 in P2Output File
+}
+
+
+int ProcessMOType7( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
+{
+    int STIndex, MOTIndex;                          // MOTIndex variable is Local and different than the one used in Pass 1
+    char ConcatenatedString[20], SourceOperand1[OPERAND1_LENGTH + 1], SourceOperand2[OPERAND2_LENGTH + 1];
+
+    strcpy( SourceOperand1, P1OutputInst.Operand1 );
+    strcpy( SourceOperand2, P1OutputInst.Operand2 );
+
+    if( ( STIndex = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    if( ( STIndex = STGet( P1OutputInst.Operand2, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand2, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    // Making SearchString for the instruction
+
+    strcpy( ConcatenatedString, P1OutputInst.Mnemonic );                          // Copying the Mnemonic in ConcatenatedString for the searching process
+    strcat( ConcatenatedString, P1OutputInst.Operand1 );
+    strcat( ConcatenatedString, P1OutputInst.Operand2 );
+
+    // Sending the SearchString for searching MOT and getting MOTIndex
+
+    MOTIndex =  MOTGet_Pass2( MOTInst, ConcatenatedString, P1OutputInst, LN );
+
+    // Writing the processed output to the P2OutputFP File
+
+    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%s", MOTInst[MOTIndex].OpCode );     // Put OpCode in P2Output File
+
+    fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand1 );            // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand2 );            // Put Operand 2 in P2Output File
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
+}
+
+
+int ProcessMOType5( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
+{
+    int STIndex, MOTIndex;                          // MOTIndex variable is Local and different than the one used in Pass 1
+    char ConcatenatedString[20], HigherByte[3], LowerByte[3], SourceOperand1[OPERAND1_LENGTH + 1];
+
+    strcpy( SourceOperand1, P1OutputInst.Operand1 );
+
+    if( ( STIndex = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    // Making SearchString for the instruction
+
+    strcpy( ConcatenatedString, P1OutputInst.Mnemonic );                          // Copying the Mnemonic in ConcatenatedString for the searching process
+
+    // Sending the SearchString for searching MOT and getting MOTIndex
+
+    MOTIndex =  MOTGet_Pass2( MOTInst, ConcatenatedString, P1OutputInst, LN );
+    HigherByte[0] = P1OutputInst.Operand1[0];
+    HigherByte[1] = P1OutputInst.Operand1[1];
+    HigherByte[2] = '\0';
+    LowerByte[0] = P1OutputInst.Operand1[2];
+    LowerByte[1] = P1OutputInst.Operand1[3];
+    LowerByte[2] = '\0';
+
+
+    // Writing the processed output to the P2OutputFP File
+
+    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%s", MOTInst[MOTIndex].OpCode );     // Put OpCode in P2Output File
+
+    fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand1 );     // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
+
+    fprintf( P2OutputFP, "%04X  ", ( P1OutputInst.LC + 1 ) );  // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%-7s\n", LowerByte );      // Put Operand 1 in P2Output File
+
+    fprintf( P2OutputFP, "%04X  ", ( P1OutputInst.LC + 2 ) );  // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%-7s\n", HigherByte );      // Put Operand 1 in P2Output File
+
+}
+
+int ProcessMOType34( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
+{
+    int STIndex, MOTIndex;                          // MOTIndex variable is Local and different than the one used in Pass 1
+    char ConcatenatedString[20], SourceOperand1[OPERAND1_LENGTH + 1];
+
+    strcpy( SourceOperand1, P1OutputInst.Operand1 );
+
+    if( ( STIndex = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    // Making SearchString for the instruction
+
+    strcpy( ConcatenatedString, P1OutputInst.Mnemonic );                          // Copying the Mnemonic in ConcatenatedString for the searching process
+
+    // Sending the SearchString for searching MOT and getting MOTIndex
+
+    MOTIndex =  MOTGet_Pass2( MOTInst, ConcatenatedString, P1OutputInst, LN );
+
+    // Writing the processed output to the P2OutputFP File
+
+    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%s", MOTInst[MOTIndex].OpCode );     // Put OpCode in P2Output File
+
+    fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand1 );     // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
+
+    fprintf( P2OutputFP, "%04X  ", ( P1OutputInst.LC + 1 ) );  // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%-7s\n", P1OutputInst.Operand1 );      // Put Operand 1 in P2Output File
+
+}
+
+int ProcessMOType26( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
+{
+    int STIndex, MOTIndex;                          // MOTIndex variable is Local and different than the one used in Pass 1
+    char ConcatenatedString[20], SourceOperand1[OPERAND1_LENGTH + 1];
+
+    strcpy( SourceOperand1, P1OutputInst.Operand1 );
+
+    if( ( STIndex = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
+    {
+        strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+
+    // Making SearchString for the instruction
+
+    strcpy( ConcatenatedString, P1OutputInst.Mnemonic );                          // Copying the Mnemonic in ConcatenatedString for the searching process
+    strcat( ConcatenatedString, P1OutputInst.Operand1 );                          // Concatenating P1OutputInst.Operand1 and ConcatenatedString
+
+    // Sending the SearchString for searching MOT and getting MOTIndex
+
+    MOTIndex =  MOTGet_Pass2( MOTInst, ConcatenatedString, P1OutputInst, LN );
+
+    // Writing the processed output to the P2OutputFP File
+
+    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%s", MOTInst[MOTIndex].OpCode );     // Put OpCode in P2Output File
+    fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand1 );            // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
 
 }
+
+///********************************************************************************************************************************************
+
+int MOTGet_Pass2( struct MOT MOTInst[], char ConcatenatedString[], struct DEFP1OUTPUT P1OutputInst, unsigned int LN )
+{
+    int i;
+    char ConCatinatedMOTString[20];
+
+    //Searching MOT
+
+    for( i=1; i<N; ++i )
+    {
+        if( P1OutputInst.IType == 1 || P1OutputInst.IType == 3 || P1OutputInst.IType == 4 || P1OutputInst.IType == 5 )
+        {
+            strcpy( ConCatinatedMOTString, MOTInst[i].Mnemonic );
+        }
+        else if( P1OutputInst.IType == 2 || P1OutputInst.IType == 6 )
+        {
+            // Making ConCatinatedMOTString by appending Operand1 to Mnemonic
+
+            strcpy( ConCatinatedMOTString, MOTInst[i].Mnemonic );
+            strcat( ConCatinatedMOTString, MOTInst[i].Operand1 );
+        }
+        else if( P1OutputInst.IType == 7 )
+        {
+            strcpy( ConCatinatedMOTString, MOTInst[i].Mnemonic );
+            strcat( ConCatinatedMOTString, MOTInst[i].Operand1 );
+            strcat( ConCatinatedMOTString, MOTInst[i].Operand2 );
+        }
+        else if( P1OutputInst.IType == 8 )
+        {
+            strcpy( ConCatinatedMOTString, MOTInst[i].Mnemonic );
+            strcat( ConCatinatedMOTString, MOTInst[i].Operand1 );
+        }
+        else if( P1OutputInst.IType == 9 )
+        {
+            strcpy( ConCatinatedMOTString, MOTInst[i].Mnemonic );
+            strcat( ConCatinatedMOTString, MOTInst[i].Operand1 );
+        }
+
+
+        if( !strcmp( ConCatinatedMOTString, ConcatenatedString ) )
+        {
+            break;
+        }
+    }
+
+    if( i == N )
+    {
+        SetColor( 12 );
+        printf("\n ERROR::LINE NO:%d HAS ERROR IN OPERAND 1 OR OPERAND 2 ( MOTGet_Pass2 )\n\a", LN );
+        SetColor( 0 );
+    }
+
+    return ( i );
+}
+
+int ProcessMOType1( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], FILE *P2OutputFP, unsigned int LN )
+{
+    int MOTIndex;               // MOTIndex variable is Local and different than the one used in Pass 1
+    char ConcatenatedString[20];
+
+    // Sending the Mnemonic for searching MOT and getting MOTIndex
+
+    //MOTIndex  = MOTGet_Pass1( MOTInst, P1OutputInst.Mnemonic, LN );     // Sending the Mnemonic for searching process ( Searching only on Mnemonic )
+
+    strcpy( ConcatenatedString, P1OutputInst.Mnemonic );                  // Making the SearchString ( Searching only on Mnemonic )
+
+    MOTIndex = MOTGet_Pass2( MOTInst, ConcatenatedString, P1OutputInst, LN );  // Sending the Mnemonic for searching process ( Searching only on Mnemonic )
+    // Writing the processed output to the P2OutputFP File
+
+    fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put Location Counter in P2Output File
+    fprintf( P2OutputFP, "%s", MOTInst[MOTIndex].OpCode );     // Put OpCode in P2Output File
+    fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
+    fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
+}
+
+
+
 
 int ProcessPseudoOp_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP, unsigned int p, unsigned int LN )
 {
@@ -386,19 +735,19 @@ int ProcessDW_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
         i = i + 1;                          // Increment the counter
     }
 
-    LowerByte[0] = P1OutputInst.Operand1[0];        // Copy the lower byte's first character into LowerByte
-    LowerByte[1] = P1OutputInst.Operand1[1];        // Copy the lower byte's Second character into LowerByte
-    LowerByte[2] = '\0';                    // End the LowerByte string
-    HigherByte[0] = P1OutputInst.Operand1[2];       // Copy the higher byte's first character into HigherByte
-    HigherByte[1] = P1OutputInst.Operand1[3];       // Copy the higher byte's second character into HigherByte
-    HigherByte[2] = '\0';                   // End the HigherByte string
+    HigherByte[0] = P1OutputInst.Operand1[0];        // Copy the lower byte's first character into LowerByte
+    HigherByte[1] = P1OutputInst.Operand1[1];        // Copy the lower byte's Second character into LowerByte
+    HigherByte[2] = '\0';                    // End the LowerByte string
+    LowerByte[0] = P1OutputInst.Operand1[2];       // Copy the higher byte's first character into HigherByte
+    LowerByte[1] = P1OutputInst.Operand1[3];       // Copy the higher byte's second character into HigherByte
+    LowerByte[2] = '\0';                   // End the HigherByte string
 
     fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Print the location counter of the LowerByte in the file
     fprintf( P2OutputFP, "%-4s  ", LowerByte );        // Print the LowerByte in the file
 
-    fprintf( P2OutputFP, "%-18s", " " );               // Blank spaces for Operand 2
+    //fprintf( P2OutputFP, "%-4s", " " );               // Blank spaces for Operand 2
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
-    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
@@ -428,9 +777,9 @@ int ProcessDB_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
     }
 
     fprintf( P2OutputFP, "%s", P1OutputInst.Operand1 );
-    fprintf( P2OutputFP, "%-22s", " " );
+    fprintf( P2OutputFP, "%-4s", " " );
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
-    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
@@ -441,9 +790,9 @@ int ProcessDS_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
     int Opernad1, i;
 
     fprintf( P2OutputFP, "%04X  ", P1OutputInst.LC );          // Put LC in P2Output File
-    fprintf( P2OutputFP, "%-24s", " " );                       // Put Blank spaces in P2Output File
+    fprintf( P2OutputFP, "%-6s", " " );                       // Put Blank spaces in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
-    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
@@ -458,9 +807,9 @@ int ProcessDS_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
 
 int ProcessEQU_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
 {
-    fprintf( P2OutputFP, "%-30s", " " );
+    fprintf( P2OutputFP, "%-12s", " " );
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
-    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
@@ -468,9 +817,9 @@ int ProcessEQU_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
 
 int ProcessEND_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
 {
-    fprintf( P2OutputFP, "%-30s", " " );
+    fprintf( P2OutputFP, "%-12s", " " );
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
-    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
@@ -478,9 +827,9 @@ int ProcessEND_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
 
 int ProcessORGorSTART_Pass2( struct DEFP1OUTPUT P1OutputInst, FILE *P2OutputFP )
 {
-    fprintf( P2OutputFP, "%-30s", " " );
+    fprintf( P2OutputFP, "%-12s", " " );
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
-    fprintf( P2OutputFP, "%-12s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
+    fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand1 );     // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
@@ -490,15 +839,17 @@ int STGet( char Operand1[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries )
 {
     int i;
 
+
     for (i=0; i<NoOfSTEntries; ++i)
     {
         if( !strcasecmp( Operand1, ST[i].Symbol ) )
         {
+            //printf("%d ", i );
             return( i );
         }
     }
 
-    return( -1 );
+    return( -88 );
 }
 
 
@@ -546,7 +897,6 @@ int ReadSymbolTable( struct SYMBOLTABLEDEF ST[] )
 
         NoOfSTEntries = NoOfSTEntries + 1;
     }
-    printf("\n\n");
 
     fclose( STFP );
 
@@ -785,7 +1135,7 @@ int IsPseudoOp_Pass1( char Mnemonic[], char POT[][6] )       // Check for Pseudo
         }
         i = i + 1;
     }
-    return(0);                                              // Else return 0
+    return( 0 );                                              // Else return 0
 }
 
 void STSTO( FILE *fp2, struct PROG SourceInst, unsigned int LC )  // Symbol table storage
@@ -1082,13 +1432,6 @@ struct PROG GetFields( char Instruction[] )  // The instruction is broken down i
         TempInst.Operand2[0] = '\0';
     }
 
-
-    /*printf("\nFINAL:\n");
-    printf("\n#Label:%s#\n", TempInst.Label);
-    printf("\n#Mnemonic:%s#\n", TempInst.Mnemonic);
-    printf("\n#Operand1:%s#\n", TempInst.Operand1);
-    printf("\n#Operand2:%s#\n", TempInst.Operand2);*/
-
     return(TempInst);
 }
 
@@ -1130,7 +1473,6 @@ int MOTGet_Pass1( struct MOT MOTInst[], char Mnemonic[], unsigned int LN )  // F
     {                                                             // if present then break the loop with its index number stored in the variable i
         if( !( strcmp( MOTInst[Index].Mnemonic, Mnemonic ) ) )
         {
-            //printf("%sh", Mnemonic);
             break;
         }
     }
@@ -1166,4 +1508,3 @@ void SetColor(int ForgC)
      }
      return;
 }
-
