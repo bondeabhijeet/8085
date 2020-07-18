@@ -1,5 +1,5 @@
 PROG             0000
-DISPLAY          0002
+DISPLAY          0000
 LOOP2            0004
 LOOP1            0006
 LAB              5678

@@ -4,6 +4,7 @@
 #include<stdlib.h>
 #include<windows.h>
 #include<conio.h>
+#include<ctype.h>
 
 #define N 247  // No of entries in MOT are 246. we are using 1 to 246. We are not using zeroth location of the array.
 #define LABEL_LENGTH 11
@@ -62,7 +63,6 @@ char *DeleteExcessWhiteSpaces( char str[] );
 struct PROG GetFields( char Instruction[] );
 int ReadMachineOpTable( struct MOT MOTInst[] );
 int MOTGet_Pass1( struct MOT MOTInst[], char Mnemonic[], unsigned int LN );
-void DisplayError( unsigned int ErrorCode, unsigned int LN );
 void STSTO( FILE *fp2, struct PROG SourceInst, unsigned int LC );
 int IsPseudoOp_Pass1( char Mnemonic[], char POT[][6] );
 int ProcessPseudoOp_Pass1( int p, struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN );
@@ -100,28 +100,36 @@ int ProcessMOType5( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struc
 int ProcessMOType7( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
 int ProcessMOType8( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
 int ProcessMOType9( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN );
+int Pass1( struct MOT MOTInst[], char POT[][6] );
+int Error( struct DEFP1OUTPUT P1OutputInst, unsigned int LN );
+int ProcessLiteralPass2( char *Operand );
 void SetColor( int ForgC );
-
 
 int main()
 {
-    FILE *fp, *fp2, *fp3;
-    unsigned int counter, i, p, j;
-    int MOTIndex, Length;
-    unsigned int LC, LN, MOTFlag;
     struct MOT MOTInst[N];
     char POT[][6] = {"ZZZZ", "DB", "DS", "DW", "END", "EQU", "ORG", "START", "\0"};  // remember that the zeroth element is dummy ( creating POT )
+
+    ReadMachineOpTable( MOTInst );                                                   // Reading MachineOp Table from the text file and store it into a structure
+
+    Pass1( MOTInst, POT );
+    Pass2( MOTInst, POT );
+}
+
+int Pass1( struct MOT MOTInst[], char POT[][6] )
+{
+    FILE *fp, *fp2, *fp3;
+    unsigned int counter, p;
+    int MOTIndex, Length;
+    unsigned int LC, LN;
     struct PROG SourceInst;
     char str[256], InstructionWithComment[256], Instruction[256], Comment[256];
     char *str2;  // For recieving purpose
 
-
-    ReadMachineOpTable( MOTInst );                          // Reading MachineOp Table from the text file and store it into a structure
-
-    if( ( fp=fopen("SourceProgram.txt", "r" ) ) == NULL )          // Opening a file ( read only ) to read the Source program
+    if( ( fp = fopen( "SourceProgram.txt", "r" ) ) == NULL )          // Opening a file ( read only ) to read the Source program
     {
         SetColor(12);
-        printf("\nError opening Source Instruction file\n\a");     //error
+        printf( "\nError opening Source Instruction file \n\a" );     //error
         SetColor(0);
         exit(0);
     }
@@ -129,7 +137,7 @@ int main()
     if( ( fp2 = fopen( "SymbolTable.txt","w" ) ) == NULL )        // Opening a file ( write only ) to store the Symbol table
     {
         SetColor(12);
-        printf("Error opening symbol Table for writing purpose \n\a");  //error
+        printf( "Error opening symbol Table for writing purpose \n\a" );  //error
         SetColor(0);
         exit(0);
     }
@@ -137,7 +145,7 @@ int main()
     if( ( fp3 = fopen( "Pass1Output.txt","w" ) ) == NULL )        // Opening a file ( write only ) to store the result of Pass1 in file
     {
         SetColor(12);
-        printf("Error opening Pass1output for writing purpose \n\a");  //error
+        printf( "Error opening Pass1output for writing purpose \n\a" );  //error
         SetColor(0);
         exit(0);
     }
@@ -150,13 +158,13 @@ int main()
 
     while(!feof(fp))
     {
-        fscanf(fp, " %[^\n]\n", str);                         // Read the full sentence from the given file with comment
+        fscanf( fp, " %[^\n]\n", str );                         // Read the full sentence from the given file with comment
 
-        str2 = DeleteExcessWhiteSpaces(str);                // Deletes all the extra spaces and tabs ( no tabs will be present after execution of this function )
-        strcpy(InstructionWithComment, str2);               // Store the instruction in the InstructionWithComment variable
+        str2 = DeleteExcessWhiteSpaces( str );                // Deletes all the extra spaces and tabs ( no tabs will be present after execution of this function )
+        strcpy( InstructionWithComment, str2 );               // Store the instruction in the InstructionWithComment variable
 
-        str2 = SplitInstructionAndComment(str, Comment);    // Delete comment from the instruction
-        strcpy(Instruction, str2);                          // Store the instruction ( without comment and extra spaces ) ie. A proper instruction
+        str2 = SplitInstructionAndComment( str, Comment );    // Delete comment from the instruction
+        strcpy( Instruction, str2 );                          // Store the instruction ( without comment and extra spaces ) ie. A proper instruction
 
         SourceInst = GetFields(Instruction);                // Separating the fields from the Instruction ie. Label, Mnemonic, Operand1, Operand2
 
@@ -164,7 +172,7 @@ int main()
 
         /// Processing PseudoOps and MachineOps
 
-        if( p = IsPseudoOp_Pass1( SourceInst.Mnemonic, POT ) )               // checking if the Mnemonic is pseudoOp if yes then ProcessPseudoOp_Pass1() will be executed
+        if( ( p = IsPseudoOp_Pass1( SourceInst.Mnemonic, POT ) ) )               // checking if the Mnemonic is pseudoOp if yes then ProcessPseudoOp_Pass1() will be executed
         {
             Length = ProcessPseudoOp_Pass1( p, SourceInst, &LC, fp2 , LN );
             WritePass1OutputToFile( SourceInst, LC, Comment, fp3, -99 );     // Storing the result of PASS1 in a file ( Pass1Output.txt ). Sending Dummy Instruction Type, as type is required only for MachineOp
@@ -174,6 +182,13 @@ int main()
         {
             MOTIndex = MOTGet_Pass1( MOTInst, SourceInst.Mnemonic, LN );              // Identify the index of the Mnemonic in MOT and store it in MOTIndex
 
+            if( MOTIndex == N )                                                  // If syntax error in Mnemonic
+            {
+                SetColor( 12 );
+                printf( "\n\n LINE NO:%d :: HAS SYNTAX ERROR IN MNEMONIC.... \n\n\a ", LN );     // error#1 in mnemonic
+                SetColor( 0 );
+                exit( 0 );
+            }
 
             if( ( SourceInst.Label[0] )!= '\0' )                             // If label is present then call STSTO
             {
@@ -194,8 +209,6 @@ int main()
     fclose( fp3 );
 
     CheckSymbolTableForDuplicates( );                                        // Checking symbol table for any duplicate ( ie. repeated ) symbols
-
-    Pass2( MOTInst, POT );
 
 }
 
@@ -311,7 +324,6 @@ int ProcessMachineOpPass2( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[]
     }
 }
 
-///****************************************************************************************************************************************************************
 
 int ProcessMOType9( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
 {
@@ -330,6 +342,10 @@ int ProcessMOType9( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struc
     if( ( STIndex = STGet( P1OutputInst.Operand2, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
     {
         strcpy( P1OutputInst.Operand2, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+    else                                                                          // Else it is a Literal then process Literal
+    {
+        ProcessLiteralPass2( &P1OutputInst.Operand2[0] );                         // Process Literal in Operand 1
     }
 
     // Making SearchString for the instruction
@@ -385,6 +401,10 @@ int ProcessMOType8( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struc
     if( ( STIndex = STGet( P1OutputInst.Operand2, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
     {
         strcpy( P1OutputInst.Operand2, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+    else                                                                          // Else it is a Literal then process Literal
+    {
+        ProcessLiteralPass2( &P1OutputInst.Operand2[0] );                         // Process Literal in Operand 1
     }
 
     // Making SearchString for the instruction
@@ -459,7 +479,7 @@ int ProcessMOType7( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struc
 
 int ProcessMOType5( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
 {
-    int STIndex, MOTIndex;                          // MOTIndex variable is Local and different than the one used in Pass 1
+    int STIndex, MOTIndex;                                                       // MOTIndex variable is Local and different than the one used in Pass 1
     char ConcatenatedString[20], HigherByte[3], LowerByte[3], SourceOperand1[OPERAND1_LENGTH + 1];
 
     strcpy( SourceOperand1, P1OutputInst.Operand1 );
@@ -467,6 +487,10 @@ int ProcessMOType5( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struc
     if( ( STIndex = STGet( P1OutputInst.Operand1, ST, NoOfSTEntries ) ) != -88 )  // To check if there is symbol in OP1 we go to STGet, if yes
     {
         strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
+    }
+    else                                                                          // Else it is a Literal then process Literal
+    {
+        ProcessLiteralPass2( &P1OutputInst.Operand1[0] );                         // Process Literal in Operand 1
     }
 
     // Making SearchString for the instruction
@@ -515,6 +539,10 @@ int ProcessMOType34( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], stru
     {
         strcpy( P1OutputInst.Operand1, ST[STIndex].Value );                       // Copy the Value of symbol in that Operand field ( ie. in P1OutputInst.Operand1 )
     }
+    else                                                                          // Else it is a Literal then process Literal
+    {
+        ProcessLiteralPass2( &P1OutputInst.Operand1[0] );                         // Process Literal in Operand 1
+    }
 
     // Making SearchString for the instruction
 
@@ -532,7 +560,7 @@ int ProcessMOType34( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], stru
     fprintf( P2OutputFP, "%-4s", " " );                       // Put Spaces for formatting in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Label );        // Put Label in P2Output File
     fprintf( P2OutputFP, "%-8s", P1OutputInst.Mnemonic );     // Put Mnemonic in P2Output File
-    fprintf( P2OutputFP, "%-15s", SourceOperand1 );     // Put Operand 1 in P2Output File
+    fprintf( P2OutputFP, "%-15s", SourceOperand1 );            // Put Operand 1 in P2Output File
     fprintf( P2OutputFP, "%-15s", P1OutputInst.Operand2 );     // Put Operand 2 in P2Output File
     fprintf( P2OutputFP, "%s\n", P1OutputInst.Comment );       // Put Comment in P2Output File
 
@@ -540,6 +568,46 @@ int ProcessMOType34( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], stru
     fprintf( P2OutputFP, "%-7s\n", P1OutputInst.Operand1 );      // Put Operand 1 in P2Output File
 
 }
+
+int ProcessLiteralPass2( char *Operand )
+{
+    int i;
+    char Op[OPERAND1_LENGTH + 1];
+
+    strcpy( Op, Operand );
+
+    if( Op[0] == '=' )
+    {
+        i = 1;
+        while( Op[i] != '\0' )
+        {
+            if( Op[i] != ' ' )
+            {
+                break;
+            }
+            else
+            {
+                i = i + 1;
+            }
+        }
+        strcpy( Operand, &Op[i] );
+
+        i = 0;
+
+        while( Operand[i] != '\0' )
+        {
+            if( Operand[i] == 'h' || Operand[i] == 'H' )
+            {
+                Operand[i] = '\0';
+            }
+            else
+            {
+                i = i + 1;
+            }
+        }
+    }
+}
+
 
 int ProcessMOType26( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries, FILE *P2OutputFP, unsigned int LN )
 {
@@ -575,12 +643,206 @@ int ProcessMOType26( struct DEFP1OUTPUT P1OutputInst, struct MOT MOTInst[], stru
 
 }
 
-///********************************************************************************************************************************************
+///****************************************************************************************************************************************************************************************************************
+int Error( struct DEFP1OUTPUT P1OutputInst, unsigned int LN )
+{
+    int i, j, Flag, n;
+
+    if( P1OutputInst.IType == 2 )
+    {
+        char Possibility2[][4] = { "A", "B", "C", "D", "E", "H", "L", "M", "SP", "PSW" };
+
+        for( i=0; i<=9; ++i)
+        {
+            if( !strcmp( P1OutputInst.Operand1, Possibility2[i] ) )
+            {
+                break;
+            }
+        }
+        if( i == 10 )
+        {
+            SetColor( 12 );
+            printf("\n ERROR :: LINE NO: %d HAS ERROR IN OPERAND 1\n\a", LN );
+            printf("\n POSSIBLE REGISTERS SHOULD BE: A, B, C, D, E, H, L, M, SP, PSW \n");
+            SetColor( 0 );
+            exit( 0 );
+        }
+    }
+    else if( P1OutputInst.IType == 3 || P1OutputInst.IType == 4 || P1OutputInst.IType == 5 )
+    {
+        Flag = 0;
+        n = strlen( P1OutputInst.Operand1 );
+
+        for(i=0; i<n; ++i)
+        {
+            if( !isxdigit(P1OutputInst.Operand1[i] ) )
+            {
+                Flag = 1;
+            }
+        }
+
+        if( Flag == 1 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN LABEL OF OPERAND 1\n\n\a", LN );
+            printf("\n POSSIBLY LABEL IN OPERAND 2 MAYBE MISSPELLED OR LITERAL SHOULD BE WRITTEN AS ' =XXH ' OR ' =XXXXH ' \n");
+            SetColor( 0 );
+            exit(0);
+        }
+    }
+    else if( P1OutputInst.IType == 6 )
+    {
+        char Possibility6[][2] = { "0", "1", "2", "3", "4", "5", "6", "7" };
+
+        for( i=0; i<=7; ++i)
+        {
+            if( !strcmp( P1OutputInst.Operand1, Possibility6[i] ) )
+            {
+                break;
+            }
+        }
+        if( i == 8 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN OPERAND 1 ( SOUULD BE IN BETWEEN RST 0 TO RST 7 )\n\n\a", LN );
+            SetColor( 0 );
+            exit( 0 );
+        }
+    }
+    else if( P1OutputInst.IType == 7 )
+    {
+        char Possibility7[][2] = { "A", "B", "C", "D", "E", "H", "L", "M" };
+
+        for( i=0; i<=7; ++i)
+        {
+            if( !strcmp( P1OutputInst.Operand1, Possibility7[i] ) )
+            {
+                break;
+            }
+        }
+        if( i == 8 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN OPERAND 1\n\n\a", LN );
+            printf("\n POSSIBLE REGISTERS SHOULD BE: A, B, C, D, E, H, L, M \n");
+            SetColor( 0 );
+            exit( 0 );
+        }
+
+        for( j=0; j<=7; ++j)
+        {
+            if( !strcmp( P1OutputInst.Operand2, Possibility7[j] ) )
+            {
+                break;
+            }
+        }
+        if( j == 8 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN OPERAND 2\n\n\a", LN );
+            printf("\n POSSIBLE REGISTERS SHOULD BE: A, B, C, D, E, H, L, M \n");
+            SetColor( 0 );
+            exit( 0 );
+        }
+
+        if( i == 7 && j == 7 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN BOTH OPERANDS ( BOTH SHOULD NOT BE M )\n\n\a", LN );
+            SetColor( 0 );
+            exit( 0 );
+        }
+    }
+    else if( P1OutputInst.IType == 8 )
+    {
+        char Possibility8[][2] = { "A", "B", "C", "D", "E", "H", "L", "M" };
+
+        for( i=0; i<=7; ++i)
+        {
+            if( !strcmp( P1OutputInst.Operand1, Possibility8[i] ) )
+            {
+                break;
+            }
+        }
+        if( i == 8 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN OPERAND 1\n\n\a", LN );
+            printf("\n POSSIBLE REGISTERS SHOULD BE: A, B, C, D, E, H, L, M \n");
+            SetColor( 0 );
+            exit( 0 );
+        }
+
+        Flag = 0;
+        n = strlen( P1OutputInst.Operand2 );
+
+        for(i=0; i<n; ++i)
+        {
+            if( !isxdigit(P1OutputInst.Operand2[i] ) )
+            {
+                Flag = 1;
+            }
+        }
+
+        if( Flag == 1 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN LABEL OF OPERAND 2\n\n\a", LN );
+            printf("\n POSSIBLY LABEL IN OPERAND 2 MAYBE MISSPELLED OR LITERAL SHOULD BE WRITTEN AS ' =XXH ' \n");
+            SetColor( 0 );
+            exit(0);
+        }
+
+    }
+    else if( P1OutputInst.IType == 9 )
+    {
+        char Possibility9[][3] = { "B", "D", "H", "SP" };
+
+        for( i=0; i<=3; ++i)
+        {
+            if( !strcmp( P1OutputInst.Operand1, Possibility9[i] ) )
+            {
+                break;
+            }
+        }
+        if( i == 4 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN OPERAND 1\n\n\a", LN );
+            printf("\n POSSIBLE REGISTERS SHOULD BE: B, D, H, SP \n");
+            SetColor( 0 );
+            exit( 0 );
+        }
+
+        Flag = 0;
+        n = strlen( P1OutputInst.Operand2 );
+
+        for(i=0; i<n; ++i)
+        {
+            if( !isxdigit(P1OutputInst.Operand2[i] ) )
+            {
+                Flag = 1;
+            }
+        }
+
+        if( Flag == 1 )
+        {
+            SetColor( 12 );
+            printf("\n\n  ERROR :: LINE NO: %d HAS ERROR IN LABEL OF OPERAND 2\n\n\a", LN );
+            printf("\n POSSIBLY LABEL IN OPERAND 2 MAYBE MISSPELLED OR LITERAL SHOULD BE WRITTEN AS ' =XXXXH ' \n");
+            SetColor( 0 );
+            exit(0);
+        }
+    }
+
+}
 
 int MOTGet_Pass2( struct MOT MOTInst[], char ConcatenatedString[], struct DEFP1OUTPUT P1OutputInst, unsigned int LN )
 {
     int i;
     char ConCatinatedMOTString[20];
+
+    Error( P1OutputInst, LN );
 
     //Searching MOT
 
@@ -619,13 +881,6 @@ int MOTGet_Pass2( struct MOT MOTInst[], char ConcatenatedString[], struct DEFP1O
         {
             break;
         }
-    }
-
-    if( i == N )
-    {
-        SetColor( 12 );
-        printf("\n ERROR::LINE NO:%d HAS ERROR IN OPERAND 1 OR OPERAND 2 ( MOTGet_Pass2 )\n\a", LN );
-        SetColor( 0 );
     }
 
     return ( i );
@@ -862,7 +1117,6 @@ struct DEFP1OUTPUT GetP1OutputInst( FILE *P1OutputFP )
     fscanf( P1OutputFP, "%s", P1OutputInst.Mnemonic);
     fscanf( P1OutputFP, "%s", P1OutputInst.Operand1 );
     fscanf( P1OutputFP, "%s", P1OutputInst.Operand2 );
-    //fscanf( P1OutputFP, "%s", P1OutputInst.OpCode );
     fscanf( P1OutputFP, "%d", &P1OutputInst.IType );
     fscanf( P1OutputFP, " %[^\n]\n", P1OutputInst.Comment );
 
@@ -1041,14 +1295,14 @@ int ProcessDB_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsign
     return( 1 );       // Returning length of DB = 1 ( ie. the space required to store single byte constant )
 }
 
-int ProcessEND_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )                                                                  // Processing the PseudoOp END
+int ProcessEND_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )   // Processing the PseudoOp END
 {
-    if( SourceInst.Label[0] != '\0' )    // if the Label is not empty
+    if( SourceInst.Label[0] != '\0' )                                                          // if the Label is not empty
     {
-        STSTO( fp2, SourceInst, *LC ) ;   // store it in symbol table
+        STSTO( fp2, SourceInst, *LC ) ;                                                        // store it in symbol table
     }
 
-    return(0);  // Returning length of END = 0 ( ie. the space required to store 0 byte constant )
+    return(0);                                                                                 // Returning length of END = 0 ( ie. the space required to store 0 byte constant )
 }
 
 int ProcessDS_Pass1( struct PROG SourceInst, unsigned int *LC, FILE *fp2, unsigned int LN )   // Processing the PseudoOp DS
@@ -1177,18 +1431,6 @@ void STSTO( FILE *fp2, struct PROG SourceInst, unsigned int LC )  // Symbol tabl
 
 }
 
-void DisplayError( unsigned int ErrorCode, unsigned int LN )  // Display the errors that occurred during the process of the program
-{
-    char ErrorMessages[][80] = { "SYNTAX ERROR IN MNEMONIC....",
-                                 "SYNTAX ERROR IN OPERAND1....",
-                                 "SYNTAX ERROR IN OPERAND2...." };
-
-    SetColor( 12 );
-    printf( "\nERROR IN LINE NO: %d : %s\n\n\a", LN, ErrorMessages[ErrorCode - 1000] );
-    SetColor( 0 );
-    exit( 0 );
-
-}
 
 char *SplitInstructionAndComment( char str[], char Comment[] )  // wherever there is ; or // they will be replaced with \0 to mark the end of string thus deleting the comment
 {
@@ -1469,7 +1711,7 @@ int MOTGet_Pass1( struct MOT MOTInst[], char Mnemonic[], unsigned int LN )  // F
     char MOTStr[100], SourceStr[100];
 
     //Searching MOT for the first time
-    for( Index=1; Index<N; ++Index )                                          // Checking if the Source Instruction's Mnemonic is present in the MOT table
+    for( Index = 1; Index<N; ++Index )                                          // Checking if the Source Instruction's Mnemonic is present in the MOT table
     {                                                             // if present then break the loop with its index number stored in the variable i
         if( !( strcmp( MOTInst[Index].Mnemonic, Mnemonic ) ) )
         {
@@ -1477,13 +1719,13 @@ int MOTGet_Pass1( struct MOT MOTInst[], char Mnemonic[], unsigned int LN )  // F
         }
     }
 
-    if( Index == N )                                                  // If syntax error in Mnemonic
+    /*if( Index == N )                                                  // If syntax error in Mnemonic
     {
         SetColor( 12 );
-        printf( "\n\nLINE NUMBER:%d HAS SYNTAX ERROR IN MNEMONIC....\n\n\a", LN );     // error#1 in mnemonic
+        printf( "\n\n LINE NO:%d :: HAS SYNTAX ERROR IN MNEMONIC.... \n\n\a ", LN );     // error#1 in mnemonic
         SetColor( 0 );
         return( -1 );
-    }
+    }*/
 
     return( Index );
 }

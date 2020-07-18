@@ -1,8 +1,8 @@
 0000    PROG           START       *              ?              -99    ?
-0000    ?              MVI         A              64H            8      // 00 01
-0002    DISPLAY        OUT         PORT2          ?              4      //02 03
-0004    LOOP2          MVI         B              10H            8      // 04 05
-0006    LOOP1          LXI         D              LAB            9      // 06 07 08
+0000    DISPLAY        OUT         PORT2          ?              4      //02 03
+0002    ?              MVI         A              =64H           8      // 00 01
+0004    LOOP2          MVI         B              =10H           8      // 04 05
+0006    LOOP1          LXI         B              =0F0F          9      // 06 07 08
 0009    LAB            EQU         5678H          ?              -99    //
 0009    ?              DCX         RP             ?              2      // 09
 000A    RP             EQU         B              ?              -99    // 
@@ -15,14 +15,14 @@
 0012    FD             EQU         C              ?              -99    //
 0012    ?              JZ          LOOP2          ?              5      //12 13 14 
 0015    DELAY          DCR         A              ?              2      // 15
-0016    ?              CPI         COUNTER        ?              3      // 16 17
+0016    ?              CPI         =0FH           ?              3      // 16 17
 0018    DEF            DS          2              ?              -99    // 18 19
 001A    DEFINE         JNZ         DISPLAY        ?              5      // 1A 1B 1C
 001D    COUNTER        EQU         0F             ?              -99    //1D
 001D    ?              HLT         ?              ?              1      //1D
 001E    CMA1           CMA         ?              ?              1      //1E
 001F    DAATA2         DB          03H            ?              -99    //1F
-0020    SUB1           MVI         A              64H            8      // 20 21
+0020    SUB1           MVI         A              =0FH           8      // 20 21
 0022    DEFINEWORD     DW          30F0H          ?              -99    // 22 23
 0024    DISPLAY4       OUT         PORT1          ?              4      // 24 25
 0026    PORT2          EQU         30H            ?              -99    // 26
