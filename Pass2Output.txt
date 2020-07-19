@@ -5,7 +5,7 @@
 0003  64     
 0004  06    LOOP2          MVI     B              =10H           // 04 05
 0005  10     
-0006  01    LOOP1          LXI     B              =0F0F          // 06 07 08
+0006  01    LOOP1          LXI     B              =0F0FH         // 06 07 08
 0007  0F     
 0008  0F     
             LAB            EQU     5678H                         //
@@ -47,4 +47,4 @@
 0027  FF    RST7           RST     7                             // 27
 0028  F5    PUSH1          PUSH    PSW                           //28
 0029  76    HALT           HLT                                   // 29
-                           END                                   // 
+                           END                                   // 29
