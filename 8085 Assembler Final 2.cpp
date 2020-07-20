@@ -53,7 +53,7 @@ struct DEFP1OUTPUT
     char Comment[COMMENT_LENGTH + 1];
 };
 
-int Pass1( struct MOT MOTInst[], char POT[][6] );
+int Assembler_Pass1( struct MOT MOTInst[], char POT[][6], char SourceFileName[] );
 char *SplitInstructionAndComment_Pass1( char str[], char Comment[] );
 char *DeleteExcessWhiteSpaces_Pass1( char str[] );
 struct PROG GetFields_Pass1( char Instruction[] );
@@ -73,7 +73,7 @@ int Write_Pass1_OutputToFile( struct PROG SourceInst, unsigned int LC, char Comm
 
 ///****************************************************************************************************************************************************************
 
-int Pass2( struct MOT MOTInst[], char POT[][6] );
+int Assembler_Pass2( struct MOT MOTInst[], char POT[][6] );
 struct DEFP1OUTPUT GetP1OutputInst_Pass2( FILE *P1OutputFP );
 int ReadSymbolTable_Pass2( struct SYMBOLTABLEDEF ST[] );
 int STGet_Pass2( char Operand1[], struct SYMBOLTABLEDEF ST[], int NoOfSTEntries );
@@ -104,15 +104,21 @@ void SetColor( int ForgC );
 int main()
 {
     struct MOT MOTInst[N];
+    char SourceFileName[80];
     char POT[][6] = {"ZZZZ", "DB", "DS", "DW", "END", "EQU", "ORG", "START", "\0"};  // remember that the zeroth element is dummy ( creating POT )
 
     ReadMachineOpTable( MOTInst );                                             // Reading MachineOp Table from the text file and store it into a structure
 
-    Pass1( MOTInst, POT );
-    Pass2( MOTInst, POT );
+    //printf("\nENTER THE FILE NAME OF SOURCE PROGRAM:: ");
+    //scanf(" %[^\n]", SourceFileName );
+
+    strcpy( SourceFileName, "SourceProgram.txt" );
+
+    Assembler_Pass1( MOTInst, POT, SourceFileName );
+    Assembler_Pass2( MOTInst, POT );
 }
 
-int Pass1( struct MOT MOTInst[], char POT[][6] )
+int Assembler_Pass1( struct MOT MOTInst[], char POT[][6], char SourceFileName[] )
 {
     FILE *fp, *fp2, *fp3;
     unsigned int counter, p;
@@ -122,7 +128,7 @@ int Pass1( struct MOT MOTInst[], char POT[][6] )
     char str[256], InstructionWithComment[256], Instruction[256], Comment[256];
     char *str2;  // For recieving purpose
 
-    if( ( fp = fopen( "SourceProgram.txt", "r" ) ) == NULL )          // Opening a file ( read only ) to read the Source program
+    if( ( fp = fopen( SourceFileName, "r" ) ) == NULL )          // Opening a file ( read only ) to read the Source program
     {
         SetColor(12);
         printf( "\nError opening Source Instruction file \n\a" );     //error
@@ -159,7 +165,7 @@ int Pass1( struct MOT MOTInst[], char POT[][6] )
         str2 = DeleteExcessWhiteSpaces_Pass1( str );                // Deletes all the extra spaces and tabs ( no tabs will be present after execution of this function )
         strcpy( InstructionWithComment, str2 );               // Store the instruction in the InstructionWithComment variable
 
-        if(InstructionWithComment[0] == '/' && InstructionWithComment[1] == '/' )
+        if( ( InstructionWithComment[0] == '/' && InstructionWithComment[1] == '/' ) || ( InstructionWithComment[0] == ';' ) )
         {
             LN = LN + 1;
             continue;
@@ -215,7 +221,7 @@ int Pass1( struct MOT MOTInst[], char POT[][6] )
 
    /// MAIN ENDS HERE
 
-int Pass2( struct MOT MOTInst[], char POT[][6] )
+int Assembler_Pass2( struct MOT MOTInst[], char POT[][6] )
 {
     int NoOfSTEntries, i, STIndex;
     FILE *P1OutputFP, *P2OutputFP;
