@@ -1,50 +1,50 @@
-            PROG           START   *                                        
-0000  D3    DISPLAY        OUT     PORT2                         //02 03
-0001  30     
-0002  3E                   MVI     A              =64H           // 00 01
-0003  64     
-0004  06    LOOP2          MVI     B              =10H           // 04 05
-0005  10     
-0006  01    LOOP1          LXI     B              =0F0FH         // 06 07 08
-0007  0F     
-0008  0F     
+            PROG           START   20F0                                     
+20F0  D3    DISPLAY        OUT     PORT2                         //02 03
+20F1  30     
+20F2  3E                   MVI     A              =64H           // 00 01
+20F3  64     
+20F4  06    LOOP2          MVI     B              =10D           // 04 05
+20F5  0A     
+20F6  01    LOOP1          LXI     B              =1547D         // 06 07 08
+20F7  0B     
+20F8  06     
             LAB            EQU     5678H                         //
-0009  0B                   DCX     RP                            // 09
+20F9  0B                   DCX     RP                            // 09
             RP             EQU     B                             // 
-000A  00                   NOP                                   //0A
-000B  00                   NOP                                   //0B
-000C  78                   MOV     A              B              //0C
-000D  B3                   ORA     E                             // 0D
-000E  C2    HEY            JNZ     LOOP1                         //0E 0F 10
-000F  06     
-0010  00     
-0011  0D    HELLO          DCR     FD                            // 11
+20FA  00                   NOP                                   //0A
+20FB  00                   NOP                                   //0B
+20FC  78                   MOV     A              B              //0C
+20FD  B3                   ORA     E                             // 0D
+20FE  C2    HEY            JNZ     LOOP1                         //0E 0F 10
+20FF  F6     
+2100  20     
+2101  0D    HELLO          DCR     FD                            // 11
             FD             EQU     C                             //
-0012  CA                   JZ      LOOP2                         //12 13 14 
-0013  04     
-0014  00     
-0015  3D    DELAY          DCR     A                             // 15
-0016  FE                   CPI     =0FH                          // 16 17
-0017  0F     
-0018        DEF            DS      2                             // 18 19
-0019  
-001A  C2    DEFINE         JNZ     DISPLAY                       // 1A 1B 1C
-001B  00     
-001C  00     
+2102  CA                   JZ      LOOP2                         //12 13 14 
+2103  F4     
+2104  20     
+2105  3D    DELAY          DCR     A                             // 15
+2106  FE                   CPI     =0FH                          // 16 17
+2107  0F     
+2108        DEF            DS      2                             // 18 19
+2109  
+210A  C2    DEFINE         JNZ     DISPLAY                       // 1A 1B 1C
+210B  F0     
+210C  20     
             COUNTER        EQU     0F                            //1D
-001D  76                   HLT                                   //1D
-001E  2F    CMA1           CMA                                   //1E
-001F  03    DAATA2         DB      03                            //1F
-0020  3E    SUB1           MVI     A              =0FH           // 20 21
-0021  0F     
-0022  F0    DEFINEWORD     DW      30F0                          // 22 23
-0023  30    
-0024  D3    DISPLAY4       OUT     PORT1                         // 24 25
-0025  01     
+210D  76                   HLT                                   //1D
+210E  2F    CMA1           CMA                                   //1E
+210F  03    DAATA2         DB      03                            //1F
+2110  3E    SUB1           MVI     A              =0FH           // 20 21
+2111  0F     
+2112  F0    DEFINEWORD     DW      30F0                          // 22 23
+2113  30    
+2114  D3    DISPLAY4       OUT     PORT1                         // 24 25
+2115  01     
             PORT2          EQU     30H                           // 26
             PORT1          EQU     01H                           // 26
-0026  2F    CMA2           CMA                                   // 26
-0027  FF    RST7           RST     7                             // 27
-0028  F5    PUSH1          PUSH    PSW                           //28
-0029  76    HALT           HLT                                   // 29
+2116  2F    CMA2           CMA                                   // 26
+2117  FF    RST7           RST     7                             // 27
+2118  F5    PUSH1          PUSH    PSW                           //28
+2119  76    HALT           HLT                                   // 29
                            END                                   // 29
