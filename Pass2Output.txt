@@ -1,50 +1,50 @@
-            PROG           START   20F0                                     
-20F0  D3    DISPLAY        OUT     PORT2                         //02 03
+            PROG           START   20F0                             S_LN# 1
+20F0  D3    DISPLAY        OUT     PORT2                         //02 03  S_LN# 2
 20F1  30     
-20F2  3E                   MVI     A              =64H           // 00 01
+20F2  3E                   MVI     A              =64H           // 00 01  S_LN# 3
 20F3  64     
-20F4  06    LOOP2          MVI     B              =10D           // 04 05
+20F4  06    LOOP2          MVI     B              =10I           // 04 05  S_LN# 4
 20F5  0A     
-20F6  01    LOOP1          LXI     B              =1547D         // 06 07 08
+20F6  01    LOOP1          LXI     B              =1547I         // 06 07 08  S_LN# 5
 20F7  0B     
 20F8  06     
-            LAB            EQU     5678H                         //
-20F9  0B                   DCX     RP                            // 09
-            RP             EQU     B                             // 
-20FA  00                   NOP                                   //0A
-20FB  00                   NOP                                   //0B
-20FC  78                   MOV     A              B              //0C
-20FD  B3                   ORA     E                             // 0D
-20FE  C2    HEY            JNZ     LOOP1                         //0E 0F 10
+            LAB            EQU     5678H                         //  S_LN# 6
+20F9  0B                   DCX     RP                            // 09  S_LN# 7
+            RP             EQU     B                             //   S_LN# 8
+20FA  00                   NOP                                   //0A  S_LN# 9
+20FB  00                   NOP                                   //0B  S_LN# 10
+20FC  78                   MOV     A              B              //0C  S_LN# 11
+20FD  B3                   ORA     E                             // 0D  S_LN# 12
+20FE  C2    HEY            JNZ     LOOP1                         //0E 0F 10  S_LN# 13
 20FF  F6     
 2100  20     
-2101  0D    HELLO          DCR     FD                            // 11
-            FD             EQU     C                             //
-2102  CA                   JZ      LOOP2                         //12 13 14 
+2101  0D    HELLO          DCR     FD                            // 11  S_LN# 14
+            FD             EQU     C                             //  S_LN# 15
+2102  CA                   JZ      LOOP2                         //12 13 14   S_LN# 16
 2103  F4     
 2104  20     
-2105  3D    DELAY          DCR     A                             // 15
-2106  FE                   CPI     =0FH                          // 16 17
+2105  3D    DELAY          DCR     A                             // 15  S_LN# 17
+2106  FE                   CPI     =0FH                          // 16 17  S_LN# 18
 2107  0F     
-2108        DEF            DS      2                             // 18 19
+2108        DEF            DS      2                             // 18 19  S_LN# 19
 2109  
-210A  C2    DEFINE         JNZ     DISPLAY                       // 1A 1B 1C
+210A  C2    DEFINE         JNZ     DISPLAY                       // 1A 1B 1C  S_LN# 20
 210B  F0     
 210C  20     
-            COUNTER        EQU     0F                            //1D
-210D  76                   HLT                                   //1D
-210E  2F    CMA1           CMA                                   //1E
-210F  03    DAATA2         DB      03                            //1F
-2110  3E    SUB1           MVI     A              =0FH           // 20 21
+            COUNTER        EQU     0F                            //1D  S_LN# 21
+210D  76                   HLT                                   //1D  S_LN# 22
+210E  2F    CMA1           CMA                                   //1E  S_LN# 25
+210F  03    DAATA2         DB      03H                           //1F  S_LN# 26
+2110  3E    SUB1           MVI     A              =0FH           // 20 21  S_LN# 27
 2111  0F     
-2112  F0    DEFINEWORD     DW      30F0                          // 22 23
+2112  F0    DEFINEWORD     DW      30F0H                         // 22 23  S_LN# 28
 2113  30    
-2114  D3    DISPLAY4       OUT     PORT1                         // 24 25
+2114  D3    DISPLAY4       OUT     PORT1                         // 24 25  S_LN# 29
 2115  01     
-            PORT2          EQU     30H                           // 26
-            PORT1          EQU     01H                           // 26
-2116  2F    CMA2           CMA                                   // 26
-2117  FF    RST7           RST     7                             // 27
-2118  F5    PUSH1          PUSH    PSW                           //28
-2119  76    HALT           HLT                                   // 29
-                           END                                   // 29
+            PORT2          EQU     30H                           // 26  S_LN# 30
+            PORT1          EQU     01H                           // 26  S_LN# 31
+2116  2F    CMA2           CMA                                   // 26  S_LN# 32
+2117  FF    RST7           RST     7                             // 27  S_LN# 33
+2118  F5    PUSH1          PUSH    PSW                           //28  S_LN# 34
+2119  76    HALT           HLT                                   // 29  S_LN# 35
+                           END                                   // 29  S_LN# 36

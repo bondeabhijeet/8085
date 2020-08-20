@@ -1,8 +1,8 @@
 0001    20F0    PROG           START       20F0           ?              -99    ?
 0002    20F0    DISPLAY        OUT         PORT2          ?              4      //02 03
 0003    20F2    ?              MVI         A              =64H           8      // 00 01
-0004    20F4    LOOP2          MVI         B              =10D           8      // 04 05
-0005    20F6    LOOP1          LXI         B              =1547D         9      // 06 07 08
+0004    20F4    LOOP2          MVI         B              =10I           8      // 04 05
+0005    20F6    LOOP1          LXI         B              =1547I         9      // 06 07 08
 0006    20F9    LAB            EQU         5678H          ?              -99    //
 0007    20F9    ?              DCX         RP             ?              2      // 09
 0008    20FA    RP             EQU         B              ?              -99    // 
