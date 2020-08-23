@@ -2280,7 +2280,7 @@ int ProcessEQU_Pass1( struct SPROG SourceInst, unsigned int *LC, FILE *fp2, unsi
 
     else if( Is_Register(SourceInst.Operand1) )             // Are resistors [ A, B, C, D, E, H, L, SP, PSW ] in Operand1
     {
-        STSTO_Pass1( fp2, SourceInst, temp );
+        STSTO_Pass1( fp2, SourceInst, temp );               // temp is used as a dummy variable
     }
 
     else if ( Hex_Flag == 1 )                               // if source operand is Hex   2) LABEL1 : EQU 3FH
