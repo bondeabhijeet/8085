@@ -1805,7 +1805,7 @@ int ProcessDS_Pass2( struct P1OUTPUTDEF P1OutputInst, FILE *P2OutputFP )
         }
         p = (unsigned int) strtol( P1OutputInst.Operand1, NULL, 16 );            // Convert Operand from string to integer
         sprintf( P1OutputInst.Operand1, "%d", p);
-        // printf( "\n %d \n ", p);
+        //printf( "\n %d \n ", p);
     }
 
     if ( Dec_Flag == 1 )                                                    // If Decimal Digits indicated by 'd' or 'D'
@@ -2233,7 +2233,7 @@ int ProcessDS_Pass1( struct SPROG SourceInst, unsigned int *LC, FILE *fp2, unsig
         sprintf( SourceInst.Operand1, "%d", p);
     }
 
-    OP1 = (unsigned int) atoi(SourceInst.Operand1);
+    OP1 = (unsigned int) atoi(SourceInst.Operand1);                             // converting back to int for computation of length required for DS
     STSTO_Pass1( fp2, SourceInst, *LC );
 
     return( OP1 );       // Returning length of DS = OP1 ( ie. the space required to store no of bytes mentioned in OP1  )

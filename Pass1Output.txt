@@ -16,19 +16,19 @@
 0016    2102    ?              JZ          LOOP2          ?              5      //12 13 14 
 0017    2105    DELAY          DCR         A              ?              2      // 15
 0018    2106    ?              CPI         =0FH           ?              3      // 16 17
-0019    2108    DEF            DS          2              ?              -99    // 18 19
-0020    210A    DEFINE         JNZ         DISPLAY        ?              5      // 1A 1B 1C
-0021    210D    COUNTER        EQU         0F             ?              -99    //1D
-0022    210D    ?              HLT         ?              ?              1      //1D
-0025    210E    CMA1           CMA         ?              ?              1      //1E
-0026    210F    DAATA2         DB          03H            ?              -99    //1F
-0027    2110    SUB1           MVI         A              =0FH           8      // 20 21
-0028    2112    DEFINEWORD     DW          30F0H          ?              -99    // 22 23
-0029    2114    DISPLAY4       OUT         PORT1          ?              4      // 24 25
-0030    2116    PORT2          EQU         30H            ?              -99    // 26
-0031    2116    PORT1          EQU         01H            ?              -99    // 26
-0032    2116    CMA2           CMA         ?              ?              1      // 26
-0033    2117    RST7           RST         7              ?              6      // 27
-0034    2118    PUSH1          PUSH        PSW            ?              2      //28
-0035    2119    HALT           HLT         ?              ?              1      // 29
-0036    211A    ?              END         ?              ?              -99    // 29
+0019    2108    DEF            DS          AH             ?              -99    // 18 19
+0020    2112    DEFINE         JNZ         DISPLAY        ?              5      // 1A 1B 1C
+0021    2115    COUNTER        EQU         0F             ?              -99    //1D
+0022    2115    ?              HLT         ?              ?              1      //1D
+0025    2116    CMA1           CMA         ?              ?              1      //1E
+0026    2117    DAATA2         DB          03H            ?              -99    //1F
+0027    2118    SUB1           MVI         A              =0FH           8      // 20 21
+0028    211A    DEFINEWORD     DW          30F0H          ?              -99    // 22 23
+0029    211C    DISPLAY4       OUT         PORT1          ?              4      // 24 25
+0030    211E    PORT2          EQU         30H            ?              -99    // 26
+0031    211E    PORT1          EQU         01H            ?              -99    // 26
+0032    211E    CMA2           CMA         ?              ?              1      // 26
+0033    211F    RST7           RST         7              ?              6      // 27
+0034    2120    PUSH1          PUSH        PSW            ?              2      //28
+0035    2121    HALT           HLT         ?              ?              1      // 29
+0036    2122    ?              END         ?              ?              -99    // 29
